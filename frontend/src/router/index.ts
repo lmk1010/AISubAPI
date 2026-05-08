@@ -345,6 +345,16 @@ const routes: RouteRecordRaw[] = [
     redirect: '/admin/dashboard'
   },
   {
+    // There is no separate admin login — admin signs in through the unified
+    // /login page. Redirect common guesses so they don't hit 404.
+    path: '/admin/login',
+    redirect: '/login'
+  },
+  {
+    path: '/admin/signin',
+    redirect: '/login'
+  },
+  {
     path: '/admin/dashboard',
     name: 'AdminDashboard',
     component: () => import('@/views/admin/DashboardView.vue'),
