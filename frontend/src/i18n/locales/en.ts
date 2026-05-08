@@ -160,6 +160,37 @@ export default {
         months: 'mo',
         years: 'yr'
       }
+    },
+    pricing: {
+      title: 'Model Pricing',
+      badge: 'Pricing',
+      desc: 'Standard token-based pricing for all public models, in USD per 1M tokens. Per-request models are listed separately.',
+      searchPlaceholder: 'Search models / channels / platforms…',
+      loading: 'Loading pricing…',
+      empty: 'No public pricing data available right now.',
+      retry: 'Reload',
+      loadFailed: 'Failed to load. Please try again.',
+      columns: {
+        model: 'Model',
+        platform: 'Platform',
+        billingMode: 'Billing',
+        input: 'Input',
+        cacheWrite: 'Cache write',
+        cacheRead: 'Cache read',
+        output: 'Output',
+        perRequest: 'Per request',
+        imageOutput: 'Image out'
+      },
+      billingMode: {
+        token: 'Token',
+        perRequest: 'Per request',
+        image: 'Image'
+      },
+      unitPerMillion: '/ 1M',
+      unitPerRequest: '/ req',
+      noPricing: 'N/A',
+      cta: 'Sign up to start',
+      ctaAuthed: 'Go to dashboard'
     }
   },
 

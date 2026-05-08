@@ -119,4 +119,11 @@ func RegisterUserRoutes(
 			monitors.GET("/:id/status", h.ChannelMonitor.GetStatus)
 		}
 	}
+
+	// 公共定价数据（无需认证）— 用于 /pricing 营销页。
+	// 仅暴露非专属（IsExclusive=false）分组下 Active 渠道的模型与定价。
+	publicChannels := v1.Group("/channels")
+	{
+		publicChannels.GET("/public", h.AvailableChannel.PublicList)
+	}
 }

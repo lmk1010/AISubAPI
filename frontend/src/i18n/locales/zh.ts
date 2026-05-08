@@ -164,6 +164,37 @@ export default {
         months: '月',
         years: '年'
       }
+    },
+    pricing: {
+      title: '模型定价',
+      badge: '定价',
+      desc: '所有公开模型按 Token 计费的标准价目，单位为美元 / 1M tokens；按次计费模型按次列出。',
+      searchPlaceholder: '搜索模型 / 渠道 / 平台…',
+      loading: '正在加载定价信息…',
+      empty: '当前没有可公开展示的定价信息。',
+      retry: '重新加载',
+      loadFailed: '加载失败，请稍后重试',
+      columns: {
+        model: '模型',
+        platform: '平台',
+        billingMode: '计费方式',
+        input: '输入',
+        cacheWrite: '缓存写入',
+        cacheRead: '缓存读取',
+        output: '输出',
+        perRequest: '每次',
+        imageOutput: '图片输出'
+      },
+      billingMode: {
+        token: 'Token',
+        perRequest: '按次',
+        image: '图片'
+      },
+      unitPerMillion: '/ 1M',
+      unitPerRequest: '/ 次',
+      noPricing: '未配置',
+      cta: '立即注册使用',
+      ctaAuthed: '前往控制台'
     }
   },
 

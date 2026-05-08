@@ -71,6 +71,17 @@ export async function getAvailable(options?: { signal?: AbortSignal }): Promise<
   return data
 }
 
-export const userChannelsAPI = { getAvailable }
+/**
+ * 公开定价数据（无需登录）— 用于 /pricing 营销页。
+ * 后端只返回非专属（IsExclusive=false）分组下 Active 渠道的模型与定价。
+ */
+export async function getPublic(options?: { signal?: AbortSignal }): Promise<UserAvailableChannel[]> {
+  const { data } = await apiClient.get<UserAvailableChannel[]>('/channels/public', {
+    signal: options?.signal
+  })
+  return data
+}
+
+export const userChannelsAPI = { getAvailable, getPublic }
 
 export default userChannelsAPI

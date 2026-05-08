@@ -166,6 +166,66 @@ func (h *AvailableChannelHandler) List(c *gin.Context) {
 	response.Success(c, out)
 }
 
+// PublicList 列出公开可见的「可用渠道」（不需要认证）。
+// 用于公共定价页 (/pricing)。规则：
+//   - 仅返回 Active 渠道；
+//   - 渠道分组只保留 IsExclusive=false 的公开分组；
+//   - 模型按平台过滤，与 List 同口径，避免跨平台模型泄漏。
+// GET /api/v1/channels/public
+func (h *AvailableChannelHandler) PublicList(c *gin.Context) {
+	if !h.featureEnabled(c) {
+		response.Success(c, []userAvailableChannel{})
+		return
+	}
+
+	channels, err := h.channelService.ListAvailable(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	out := make([]userAvailableChannel, 0, len(channels))
+	for _, ch := range channels {
+		if ch.Status != service.StatusActive {
+			continue
+		}
+		visibleGroups := filterPublicGroups(ch.Groups)
+		if len(visibleGroups) == 0 {
+			continue
+		}
+		sections := buildPlatformSections(ch, visibleGroups)
+		if len(sections) == 0 {
+			continue
+		}
+		out = append(out, userAvailableChannel{
+			Name:        ch.Name,
+			Description: ch.Description,
+			Platforms:   sections,
+		})
+	}
+
+	response.Success(c, out)
+}
+
+// filterPublicGroups 仅保留公开（非专属）分组。
+func filterPublicGroups(groups []service.AvailableGroupRef) []userAvailableGroup {
+	visible := make([]userAvailableGroup, 0, len(groups))
+	for _, g := range groups {
+		if g.IsExclusive {
+			continue
+		}
+		visible = append(visible, userAvailableGroup{
+			ID:               g.ID,
+			Name:             g.Name,
+			Platform:         g.Platform,
+			SubscriptionType: g.SubscriptionType,
+			RateMultiplier:   g.RateMultiplier,
+			IsExclusive:      g.IsExclusive,
+		})
+	}
+	return visible
+}
+
 // buildPlatformSections 把一个渠道按 visibleGroups 的平台集合拆成有序的 section 列表：
 // 每个 section 对应一个平台，只包含该平台的 groups 和 supported_models。
 // 输出按 platform 字母序稳定排序，便于前端等效比较与回归测试。
