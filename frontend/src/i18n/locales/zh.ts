@@ -2483,6 +2483,30 @@ export default {
         ruleModelPricing: '模型定价',
         noGroupsInChannel: '上方平台标签页中未选择分组',
         unnamed: '未命名'
+      },
+      litellm: {
+        title: '从 LiteLLM 同步官方定价',
+        button: '从 LiteLLM 同步',
+        subtitle: '渠道 {channel} · 平台 {platform}：列出 LiteLLM 已知模型，勾选后写入官方价格',
+        searchPlaceholder: '搜索模型名…',
+        empty: '当前 LiteLLM 数据库中没有 {platform} 平台的模型',
+        noMatch: '没有匹配的模型',
+        selectAllVisible: '全选当前可见',
+        unselectAll: '取消全选',
+        alreadyConfigured: '已配置',
+        importN: '导入 {n} 个',
+        cols: {
+          model: '模型',
+          mode: '类型',
+          input: '输入 / 1M',
+          cache: '缓存读 / 1M',
+          output: '输出 / 1M'
+        },
+        toastImported: '导入 {n} 个',
+        toastSkipped: '跳过 {n} 个（已存在）',
+        toastMissing: '{n} 个未在 LiteLLM 库中找到',
+        loadFailed: '加载 LiteLLM 列表失败',
+        importFailed: '导入失败'
       }
     },
 

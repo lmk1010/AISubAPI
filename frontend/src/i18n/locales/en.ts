@@ -2402,6 +2402,30 @@ export default {
         ruleModelPricing: 'Model Pricing',
         noGroupsInChannel: 'No groups selected in platform tabs above',
         unnamed: 'Unnamed'
+      },
+      litellm: {
+        title: 'Sync official pricing from LiteLLM',
+        button: 'Sync from LiteLLM',
+        subtitle: 'Channel {channel} · platform {platform}: pick the LiteLLM-known models to import at official prices',
+        searchPlaceholder: 'Search models…',
+        empty: 'LiteLLM has no models for {platform} platform',
+        noMatch: 'No matching models',
+        selectAllVisible: 'Select all visible',
+        unselectAll: 'Clear selection',
+        alreadyConfigured: 'configured',
+        importN: 'Import {n}',
+        cols: {
+          model: 'Model',
+          mode: 'Mode',
+          input: 'Input / 1M',
+          cache: 'Cache read / 1M',
+          output: 'Output / 1M'
+        },
+        toastImported: 'imported {n}',
+        toastSkipped: 'skipped {n} (already configured)',
+        toastMissing: '{n} not found in LiteLLM',
+        loadFailed: 'Failed to load LiteLLM list',
+        importFailed: 'Import failed'
       }
     },
 

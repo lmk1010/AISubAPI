@@ -2,6 +2,7 @@ package admin
 
 import (
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 
@@ -17,11 +18,16 @@ import (
 type ChannelHandler struct {
 	channelService *service.ChannelService
 	billingService *service.BillingService
+	pricingService *service.PricingService
 }
 
 // NewChannelHandler creates a new admin channel handler
-func NewChannelHandler(channelService *service.ChannelService, billingService *service.BillingService) *ChannelHandler {
-	return &ChannelHandler{channelService: channelService, billingService: billingService}
+func NewChannelHandler(channelService *service.ChannelService, billingService *service.BillingService, pricingService *service.PricingService) *ChannelHandler {
+	return &ChannelHandler{
+		channelService: channelService,
+		billingService: billingService,
+		pricingService: pricingService,
+	}
 }
 
 // --- Request / Response types ---
@@ -498,5 +504,190 @@ func (h *ChannelHandler) GetModelDefaultPricing(c *gin.Context) {
 		"cache_write_price":  pricing.CacheCreationPricePerToken,
 		"cache_read_price":   pricing.CacheReadPricePerToken,
 		"image_output_price": pricing.ImageOutputPricePerToken,
+	})
+}
+
+// litellmSuggestionItem is one row of the suggestions response.
+type litellmSuggestionItem struct {
+	Model             string  `json:"model"`
+	InputPrice        float64 `json:"input_price"`
+	OutputPrice       float64 `json:"output_price"`
+	CacheReadPrice    float64 `json:"cache_read_price"`
+	CacheWritePrice   float64 `json:"cache_write_price"`
+	ImageOutputPrice  float64 `json:"image_output_price"`
+	Mode              string  `json:"mode"`
+	SupportsCache     bool    `json:"supports_cache"`
+	AlreadyConfigured bool    `json:"already_configured"`
+}
+
+// GetLiteLLMSuggestions lists LiteLLM-known models for a given platform,
+// flagging those already configured on the channel so the UI can show them
+// disabled or hidden.
+// GET /api/v1/admin/channels/:id/litellm-suggestions?platform=openai
+func (h *ChannelHandler) GetLiteLLMSuggestions(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		response.ErrorFrom(c, infraerrors.BadRequest("INVALID_ID", "invalid channel id"))
+		return
+	}
+	platform := strings.ToLower(strings.TrimSpace(c.Query("platform")))
+	if platform == "" {
+		response.ErrorFrom(c, infraerrors.BadRequest("MISSING_PARAMETER", "platform is required"))
+		return
+	}
+
+	channel, err := h.channelService.GetByID(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	existing := make(map[string]struct{})
+	for _, p := range channel.ModelPricing {
+		if !strings.EqualFold(p.Platform, platform) {
+			continue
+		}
+		for _, m := range p.Models {
+			existing[strings.ToLower(strings.TrimSpace(m))] = struct{}{}
+		}
+	}
+
+	items := h.pricingService.ListByProvider(platform)
+	out := make([]litellmSuggestionItem, 0, len(items))
+	for name, p := range items {
+		_, dup := existing[strings.ToLower(name)]
+		out = append(out, litellmSuggestionItem{
+			Model:             name,
+			InputPrice:        p.InputCostPerToken,
+			OutputPrice:       p.OutputCostPerToken,
+			CacheReadPrice:    p.CacheReadInputTokenCost,
+			CacheWritePrice:   p.CacheCreationInputTokenCost,
+			ImageOutputPrice:  p.OutputCostPerImage,
+			Mode:              p.Mode,
+			SupportsCache:     p.SupportsPromptCaching,
+			AlreadyConfigured: dup,
+		})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Model < out[j].Model })
+
+	response.Success(c, gin.H{"platform": platform, "items": out})
+}
+
+// importLiteLLMRequest is the body for ImportLiteLLMModels.
+type importLiteLLMRequest struct {
+	Platform string   `json:"platform" binding:"required"`
+	Models   []string `json:"models" binding:"required,min=1"`
+}
+
+// ImportLiteLLMModels writes LiteLLM official prices into channel_model_pricing
+// for the requested model names. Models already present on the channel are
+// skipped (operator should manually delete + re-import to refresh prices).
+// POST /api/v1/admin/channels/:id/import-litellm-models
+func (h *ChannelHandler) ImportLiteLLMModels(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		response.ErrorFrom(c, infraerrors.BadRequest("INVALID_ID", "invalid channel id"))
+		return
+	}
+
+	var req importLiteLLMRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.ErrorFrom(c, infraerrors.BadRequest("INVALID_REQUEST", err.Error()))
+		return
+	}
+	platform := strings.ToLower(strings.TrimSpace(req.Platform))
+	if platform == "" {
+		response.ErrorFrom(c, infraerrors.BadRequest("MISSING_PARAMETER", "platform is required"))
+		return
+	}
+
+	channel, err := h.channelService.GetByID(c.Request.Context(), id)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	existing := make(map[string]struct{})
+	for _, p := range channel.ModelPricing {
+		if !strings.EqualFold(p.Platform, platform) {
+			continue
+		}
+		for _, m := range p.Models {
+			existing[strings.ToLower(strings.TrimSpace(m))] = struct{}{}
+		}
+	}
+
+	imported := []string{}
+	skipped := []string{}
+	missing := []string{}
+	pricing := append([]service.ChannelModelPricing(nil), channel.ModelPricing...)
+
+	for _, raw := range req.Models {
+		name := strings.TrimSpace(raw)
+		if name == "" {
+			continue
+		}
+		if _, dup := existing[strings.ToLower(name)]; dup {
+			skipped = append(skipped, name)
+			continue
+		}
+		litellm := h.pricingService.GetModelPricing(name)
+		if litellm == nil || litellm.InputCostPerToken == 0 {
+			missing = append(missing, name)
+			continue
+		}
+
+		in := litellm.InputCostPerToken
+		out := litellm.OutputCostPerToken
+		entry := service.ChannelModelPricing{
+			ChannelID:   id,
+			Platform:    platform,
+			Models:      []string{name},
+			BillingMode: service.BillingModeToken,
+			InputPrice:  &in,
+			OutputPrice: &out,
+		}
+		if litellm.CacheReadInputTokenCost > 0 {
+			v := litellm.CacheReadInputTokenCost
+			entry.CacheReadPrice = &v
+		}
+		if litellm.CacheCreationInputTokenCost > 0 {
+			v := litellm.CacheCreationInputTokenCost
+			entry.CacheWritePrice = &v
+		}
+		if litellm.OutputCostPerImage > 0 {
+			v := litellm.OutputCostPerImage
+			entry.ImageOutputPrice = &v
+			if litellm.Mode == "image_generation" {
+				entry.BillingMode = service.BillingModeImage
+			}
+		}
+		pricing = append(pricing, entry)
+		existing[strings.ToLower(name)] = struct{}{}
+		imported = append(imported, name)
+	}
+
+	if len(imported) == 0 {
+		response.Success(c, gin.H{
+			"imported": imported,
+			"skipped":  skipped,
+			"missing":  missing,
+		})
+		return
+	}
+
+	if _, err := h.channelService.Update(c.Request.Context(), id, &service.UpdateChannelInput{
+		ModelPricing: &pricing,
+	}); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, gin.H{
+		"imported": imported,
+		"skipped":  skipped,
+		"missing":  missing,
 	})
 }

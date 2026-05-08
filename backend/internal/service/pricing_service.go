@@ -522,6 +522,28 @@ func (s *PricingService) validatePricingURL(raw string) (string, error) {
 }
 
 // GetModelPricing 获取模型价格（带模糊匹配）
+// ListByProvider returns a snapshot of LiteLLM-known pricing entries whose
+// LiteLLMProvider matches the given provider (case-insensitive). Pass an
+// empty string to get all entries. The returned values are shallow copies
+// so callers can't mutate the cache.
+func (s *PricingService) ListByProvider(provider string) map[string]*LiteLLMModelPricing {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	target := strings.ToLower(strings.TrimSpace(provider))
+	out := make(map[string]*LiteLLMModelPricing, len(s.pricingData))
+	for k, v := range s.pricingData {
+		if v == nil {
+			continue
+		}
+		if target != "" && strings.ToLower(v.LiteLLMProvider) != target {
+			continue
+		}
+		cp := *v
+		out[k] = &cp
+	}
+	return out
+}
+
 func (s *PricingService) GetModelPricing(modelName string) *LiteLLMModelPricing {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

@@ -589,7 +589,9 @@ func registerChannelRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		channels.GET("", h.Admin.Channel.List)
 		channels.GET("/model-pricing", h.Admin.Channel.GetModelDefaultPricing)
 		channels.GET("/:id", h.Admin.Channel.GetByID)
+		channels.GET("/:id/litellm-suggestions", h.Admin.Channel.GetLiteLLMSuggestions)
 		channels.POST("", h.Admin.Channel.Create)
+		channels.POST("/:id/import-litellm-models", h.Admin.Channel.ImportLiteLLMModels)
 		channels.PUT("/:id", h.Admin.Channel.Update)
 		channels.DELETE("/:id", h.Admin.Channel.Delete)
 	}

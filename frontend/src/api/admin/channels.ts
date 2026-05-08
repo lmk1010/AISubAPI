@@ -164,5 +164,62 @@ export async function getModelDefaultPricing(model: string): Promise<ModelDefaul
   return data
 }
 
-const channelsAPI = { list, getById, create, update, remove, getModelDefaultPricing }
+// ===== LiteLLM sync =====
+
+export interface LiteLLMSuggestionItem {
+  model: string
+  input_price: number
+  output_price: number
+  cache_read_price: number
+  cache_write_price: number
+  image_output_price: number
+  mode: string
+  supports_cache: boolean
+  already_configured: boolean
+}
+
+export interface LiteLLMSuggestionsResponse {
+  platform: string
+  items: LiteLLMSuggestionItem[]
+}
+
+export async function getLiteLLMSuggestions(
+  channelId: number,
+  platform: string
+): Promise<LiteLLMSuggestionsResponse> {
+  const { data } = await apiClient.get<LiteLLMSuggestionsResponse>(
+    `/admin/channels/${channelId}/litellm-suggestions`,
+    { params: { platform } }
+  )
+  return data
+}
+
+export interface ImportLiteLLMResponse {
+  imported: string[]
+  skipped: string[]
+  missing: string[]
+}
+
+export async function importLiteLLMModels(
+  channelId: number,
+  platform: string,
+  models: string[]
+): Promise<ImportLiteLLMResponse> {
+  const { data } = await apiClient.post<ImportLiteLLMResponse>(
+    `/admin/channels/${channelId}/import-litellm-models`,
+    { platform, models }
+  )
+  return data
+}
+
+const channelsAPI = {
+  list,
+  getById,
+  create,
+  update,
+  remove,
+  getModelDefaultPricing,
+  getLiteLLMSuggestions,
+  importLiteLLMModels
+}
 export default channelsAPI

@@ -406,9 +406,21 @@
             <div>
               <div class="mb-1 flex items-center justify-between">
                 <label class="input-label text-xs mb-0">{{ t('admin.channels.form.modelPricing', 'Model Pricing') }}</label>
-                <button type="button" @click="addPricingEntry(sIdx)" class="text-xs text-primary-600 hover:text-primary-700">
-                  + {{ t('common.add', 'Add') }}
-                </button>
+                <div class="flex items-center gap-3">
+                  <button
+                    v-if="editingChannel"
+                    type="button"
+                    @click="openLiteLLMSync(section.platform)"
+                    class="inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
+                    :title="t('admin.channels.litellm.title')"
+                  >
+                    <Icon name="refresh" size="xs" />
+                    {{ t('admin.channels.litellm.button') }}
+                  </button>
+                  <button type="button" @click="addPricingEntry(sIdx)" class="text-xs text-primary-600 hover:text-primary-700">
+                    + {{ t('common.add', 'Add') }}
+                  </button>
+                </div>
               </div>
               <div
                 v-if="section.model_pricing.length === 0"
@@ -596,6 +608,17 @@
       @confirm="confirmDelete"
       @cancel="showDeleteDialog = false"
     />
+
+    <!-- LiteLLM Sync Dialog -->
+    <LiteLLMSyncDialog
+      v-if="litellmSync.show && editingChannel"
+      :show="litellmSync.show"
+      :channel-id="editingChannel.id"
+      :channel-name="editingChannel.name"
+      :platform="litellmSync.platform"
+      @close="litellmSync.show = false"
+      @imported="onLiteLLMImported"
+    />
   </AppLayout>
 </template>
 
@@ -623,6 +646,7 @@ import Icon from '@/components/icons/Icon.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import Toggle from '@/components/common/Toggle.vue'
 import PricingEntryCard from '@/components/admin/channel/PricingEntryCard.vue'
+import LiteLLMSyncDialog from '@/components/admin/channel/LiteLLMSyncDialog.vue'
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { useKeyedDebouncedSearch } from '@/composables/useKeyedDebouncedSearch'
 
@@ -712,6 +736,21 @@ const submitting = ref(false)
 const showDeleteDialog = ref(false)
 const deletingChannel = ref<Channel | null>(null)
 const activeTab = ref<string>('basic')
+
+// LiteLLM sync dialog state
+const litellmSync = reactive({ show: false, platform: '' as string })
+function openLiteLLMSync(platform: string) {
+  if (!editingChannel.value) return
+  litellmSync.platform = platform
+  litellmSync.show = true
+}
+async function onLiteLLMImported(_result: { imported: string[]; skipped: string[]; missing: string[] }) {
+  // Re-fetch the channel so the freshly-inserted pricing rows appear in the
+  // edit dialog. The backend has already persisted them in DB.
+  if (!editingChannel.value) return
+  const fresh = await adminAPI.channels.getById(editingChannel.value.id)
+  await openEditDialog(fresh)
+}
 
 // Groups
 const allGroups = ref<AdminGroup[]>([])
