@@ -1,25 +1,25 @@
 <template>
   <AuthLayout>
-    <div class="space-y-6">
+    <div class="login-card">
       <!-- Title -->
-      <div class="text-center">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+      <div class="login-head">
+        <h2 class="login-title">
           {{ t('auth.welcomeBack') }}
         </h2>
-        <p class="mt-2 text-sm text-gray-500 dark:text-dark-400">
-          {{ t('auth.signInToAccount') }}
+        <p class="login-subtitle">
+          {{ t('auth.signInToAccount', { name: siteName }) }}
         </p>
       </div>
       <!-- Login Form -->
-      <form @submit.prevent="handleLogin" class="space-y-5">
+      <form @submit.prevent="handleLogin" class="login-form">
         <!-- Email Input -->
-        <div>
-          <label for="email" class="input-label">
+        <div class="field">
+          <label for="email" class="field-label">
             {{ t('auth.emailLabel') }}
           </label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="mail" size="md" class="text-gray-400 dark:text-dark-500" />
+          <div class="field-input">
+            <div class="field-input__icon">
+              <Icon name="mail" size="md" />
             </div>
             <input
               id="email"
@@ -29,21 +29,21 @@
               autofocus
               autocomplete="email"
               :disabled="isLoading"
-              class="input pl-11"
-              :class="{ 'input-error': errors.email }"
+              class="field-input__el"
+              :class="{ 'field-input__el--error': errors.email }"
               :placeholder="t('auth.emailPlaceholder')"
             />
           </div>
         </div>
 
         <!-- Password Input -->
-        <div>
-          <label for="password" class="input-label">
+        <div class="field">
+          <label for="password" class="field-label">
             {{ t('auth.passwordLabel') }}
           </label>
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5">
-              <Icon name="lock" size="md" class="text-gray-400 dark:text-dark-500" />
+          <div class="field-input">
+            <div class="field-input__icon">
+              <Icon name="lock" size="md" />
             </div>
             <input
               id="password"
@@ -52,29 +52,35 @@
               required
               autocomplete="current-password"
               :disabled="isLoading"
-              class="input pl-11 pr-11"
-              :class="{ 'input-error': errors.password }"
+              class="field-input__el field-input__el--with-suffix"
+              :class="{ 'field-input__el--error': errors.password }"
               :placeholder="t('auth.passwordPlaceholder')"
             />
             <button
               type="button"
+              class="field-input__suffix"
               @click="showPassword = !showPassword"
-              class="absolute inset-y-0 right-0 flex items-center pr-3.5 text-gray-400 transition-colors hover:text-gray-600 dark:hover:text-dark-300"
+              :aria-label="showPassword ? t('auth.hidePassword') : t('auth.showPassword')"
             >
               <Icon v-if="showPassword" name="eyeOff" size="md" />
               <Icon v-else name="eye" size="md" />
             </button>
           </div>
-          <div class="mt-1 flex items-center justify-between">
-            <span></span>
-            <router-link
-              v-if="passwordResetEnabled && !backendModeEnabled"
-              to="/forgot-password"
-              class="text-sm font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-            >
-              {{ t('auth.forgotPassword') }}
-            </router-link>
-          </div>
+        </div>
+
+        <!-- Remember + forgot password row -->
+        <div class="row-options">
+          <label class="checkbox">
+            <input v-model="rememberMe" type="checkbox" />
+            <span>{{ t('auth.rememberMe') }}</span>
+          </label>
+          <router-link
+            v-if="passwordResetEnabled && !backendModeEnabled"
+            to="/forgot-password"
+            class="forgot-link"
+          >
+            {{ t('auth.forgotPassword') }}
+          </router-link>
         </div>
 
         <!-- Turnstile Widget -->
@@ -92,7 +98,7 @@
         <button
           type="submit"
           :disabled="isLoading || (turnstileEnabled && !turnstileToken)"
-          class="btn btn-primary w-full"
+          class="submit-btn"
         >
           <svg
             v-if="isLoading"
@@ -114,8 +120,8 @@
               d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
             ></path>
           </svg>
-          <Icon v-else name="login" size="md" class="mr-2" />
-          {{ isLoading ? t('auth.signingIn') : t('auth.signIn') }}
+          <span>{{ isLoading ? t('auth.signingIn') : t('auth.signIn') }}</span>
+          <Icon v-if="!isLoading" name="arrowRight" size="sm" :stroke-width="2.2" />
         </button>
 
         <div v-if="showOAuthLogin" class="space-y-3 pt-1">
@@ -156,12 +162,9 @@
 
     <!-- Footer -->
     <template v-if="!backendModeEnabled" #footer>
-      <p class="text-gray-500 dark:text-dark-400">
+      <p class="footer-cta">
         {{ t('auth.dontHaveAccount') }}
-        <router-link
-          to="/register"
-          class="font-medium text-primary-600 transition-colors hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300"
-        >
+        <router-link to="/register" class="footer-cta__link">
           {{ t('auth.signUp') }}
         </router-link>
       </p>
@@ -210,6 +213,9 @@ const appStore = useAppStore()
 const isLoading = ref<boolean>(false)
 const errorMessage = ref<string>('')
 const showPassword = ref<boolean>(false)
+const rememberMe = ref<boolean>(false)
+
+const siteName = computed(() => appStore.siteName || 'Sub2API')
 
 // Public settings
 const turnstileEnabled = ref<boolean>(false)
@@ -438,6 +444,206 @@ function handle2FACancel(): void {
 </script>
 
 <style scoped>
+.login-card {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 26px;
+}
+
+.login-head {
+  text-align: center;
+}
+
+.login-title {
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  margin: 0;
+}
+
+.login-subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #64748b;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.field-input {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.field-input__icon {
+  position: absolute;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  pointer-events: none;
+  color: #94a3b8;
+  /* Sit above the input element's background, otherwise the input's
+     opaque background paints on top of the absolutely-positioned icon
+     (siblings stack by DOM order; the input comes second). */
+  z-index: 2;
+}
+
+.field-input__el {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px 0 42px;
+  border-radius: 8px;
+  border: 1px solid rgba(203, 213, 225, 0.65);
+  background: rgba(255, 255, 255, 0.92);
+  color: #0f172a;
+  font-size: 14px;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+  backdrop-filter: blur(6px);
+}
+
+.field-input__el::placeholder {
+  color: #94a3b8;
+}
+
+.field-input__el:focus {
+  outline: none;
+  background: #fff;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+}
+
+.field-input__el--with-suffix {
+  padding-right: 42px;
+}
+
+.field-input__el--error {
+  border-color: #ef4444;
+}
+
+.field-input__el--error:focus {
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.18);
+}
+
+.field-input__suffix {
+  position: absolute;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  color: #94a3b8;
+  background: transparent;
+  transition: color 0.18s ease, background 0.18s ease;
+  z-index: 2;
+}
+
+.field-input__suffix:hover {
+  color: #475569;
+  background: rgba(15, 23, 42, 0.05);
+}
+
+.row-options {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: #475569;
+  cursor: pointer;
+  user-select: none;
+}
+
+.checkbox input {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  accent-color: #2563eb;
+  cursor: pointer;
+}
+
+.forgot-link {
+  font-weight: 500;
+  color: #2563eb;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+.forgot-link:hover {
+  color: #1d4ed8;
+}
+
+.submit-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 46px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -6px rgba(37, 99, 235, 0.45);
+  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+  margin-top: 6px;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: linear-gradient(180deg, #1d4ed8 0%, #1e40af 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.55);
+}
+
+.submit-btn:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.footer-cta {
+  margin: 0;
+  color: #64748b;
+}
+
+.footer-cta__link {
+  font-weight: 600;
+  color: #2563eb;
+  text-decoration: none;
+  margin-left: 6px;
+  transition: color 0.18s ease;
+}
+
+.footer-cta__link:hover {
+  color: #1d4ed8;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: all 0.3s ease;
@@ -447,5 +653,41 @@ function handle2FACancel(): void {
 .fade-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+</style>
+
+<style>
+html.dark .login-title {
+  color: #f8fafc;
+}
+html.dark .login-subtitle,
+html.dark .footer-cta {
+  color: #94a3b8;
+}
+html.dark .field-label {
+  color: #f1f5f9;
+}
+html.dark .field-input__el {
+  background: rgba(30, 41, 59, 0.7);
+  color: #f8fafc;
+  border-color: rgba(71, 85, 105, 0.6);
+}
+html.dark .field-input__el::placeholder {
+  color: #64748b;
+}
+html.dark .field-input__el:focus {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2);
+}
+html.dark .checkbox {
+  color: #94a3b8;
+}
+html.dark .field-input__icon {
+  color: #64748b;
+}
+html.dark .field-input__suffix:hover {
+  color: #cbd5e1;
+  background: rgba(248, 250, 252, 0.06);
 }
 </style>

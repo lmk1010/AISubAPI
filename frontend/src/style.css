@@ -191,8 +191,10 @@
   }
 
   /* ============ 玻璃效果 ============ */
+  /* Header uses a fully transparent treatment so the global pixel-wave
+     backdrop flows continuously through sidebar / header / content. */
   .glass {
-    @apply bg-white/80 backdrop-blur-xl dark:bg-dark-800/80;
+    background-color: transparent;
   }
 
   .glass-card {
@@ -517,19 +519,25 @@
   }
 
   /* ============ 侧边栏 ============ */
+  /* Sidebar shares the lavender canvas but uses a hairline divider on the
+     right edge to clearly separate it from the main content (matches design). */
   .sidebar {
     @apply fixed inset-y-0 left-0 z-40;
-    @apply w-64 bg-white dark:bg-dark-900;
-    @apply border-r border-gray-200 dark:border-dark-800;
+    @apply w-64;
     @apply flex flex-col;
     @apply transition-transform duration-300;
+    background-color: transparent;
+    border-right: 1px solid rgba(148, 163, 184, 0.18);
     transition-property: width, transform;
+  }
+  html.dark .sidebar {
+    border-right-color: rgba(51, 65, 85, 0.5);
   }
 
   .sidebar-header {
-    @apply h-16 px-6;
+    @apply h-[80px] px-6;
     @apply flex items-center gap-3;
-    @apply border-b border-gray-100 dark:border-dark-800;
+    border-bottom: none;
     transition:
       padding 0.2s ease,
       gap 0.2s ease;
@@ -540,21 +548,28 @@
   }
 
   .sidebar-link {
-    @apply flex items-center gap-3 rounded-xl py-2.5;
+    @apply flex items-center gap-3 rounded-lg py-2.5;
     @apply overflow-hidden;
     @apply text-sm font-medium;
     @apply text-gray-600 dark:text-dark-300;
-    @apply transition-all duration-200;
-    @apply hover:bg-gray-100 dark:hover:bg-dark-800;
-    @apply hover:text-gray-900 dark:hover:text-white;
+    @apply transition-all duration-150;
+    @apply hover:text-violet-700 dark:hover:text-violet-200;
     padding-left: 1.0625rem;
     padding-right: 0.875rem;
   }
+  .sidebar-link:hover {
+    background-color: rgba(167, 139, 250, 0.18);
+  }
+  html.dark .sidebar-link:hover {
+    background-color: rgba(124, 58, 237, 0.22);
+  }
 
+  /* Active state uses violet to match the dashboard design's primary accent. */
   .sidebar-link-active {
-    @apply bg-primary-50 dark:bg-primary-900/20;
-    @apply text-primary-600 dark:text-primary-400;
-    @apply hover:bg-primary-100 dark:hover:bg-primary-900/30;
+    @apply bg-violet-100 dark:bg-violet-950/40;
+    @apply text-violet-700 dark:text-violet-300;
+    @apply hover:bg-violet-200 dark:hover:bg-violet-950/60;
+    @apply hover:text-violet-800 dark:hover:text-violet-200;
   }
 
   .sidebar-section {

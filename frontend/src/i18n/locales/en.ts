@@ -441,7 +441,9 @@ export default {
   // Auth
   auth: {
     welcomeBack: 'Welcome Back',
-    signInToAccount: 'Sign in to your account to continue',
+    signInToAccount: 'Sign in to your account to continue using {name}',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     signIn: 'Sign In',
     signingIn: 'Signing in...',
     createAccount: 'Create Account',
@@ -650,6 +652,8 @@ export default {
     groupDistribution: 'Group Usage Distribution',
     tokenUsageTrend: 'Token Usage Trend',
     noDataAvailable: 'No data available',
+    noModelDataInRange: 'No model usage in the selected time range',
+    noTokenTrendInRange: 'No token usage trend in the selected time range',
     model: 'Model',
     group: 'Group',
     noGroup: 'No Group',
@@ -1398,6 +1402,7 @@ export default {
       standard: 'Standard',
       accountCost: 'Cost',
       noDataAvailable: 'No data available',
+      noTokenTrendInRange: 'No token usage trend in the selected time range',
       recentUsage: 'Recent Usage',
       viewModelDistribution: 'Model Distribution',
       viewSpendingRanking: 'User Spending Ranking',

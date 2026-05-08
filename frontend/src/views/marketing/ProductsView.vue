@@ -135,8 +135,11 @@ async function loadPlans() {
   loading.value = true
   error.value = null
   try {
-    const data = await paymentAPI.getPublicPlans()
-    plans.value = (data || []).filter((p) => p.for_sale).sort((a, b) => a.sort_order - b.sort_order)
+    const response = await paymentAPI.getPublicPlans()
+    const list: SubscriptionPlan[] = response.data || []
+    plans.value = list
+      .filter((p: SubscriptionPlan) => p.for_sale)
+      .sort((a: SubscriptionPlan, b: SubscriptionPlan) => a.sort_order - b.sort_order)
   } catch (e: any) {
     error.value = e?.message || t('marketing.products.loadFailed')
   } finally {

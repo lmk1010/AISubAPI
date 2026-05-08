@@ -9,14 +9,13 @@
     <!-- Logo/Brand -->
     <div class="sidebar-header" :class="{ 'sidebar-header-collapsed': sidebarCollapsed }">
       <!-- Custom Logo or Default Logo -->
-      <div class="sidebar-logo flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl shadow-glow">
+      <div class="sidebar-logo flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl shadow-glow">
         <img v-if="settingsLoaded" :src="siteLogo || '/logo.png'" alt="Logo" class="h-full w-full object-contain" />
       </div>
-      <div class="sidebar-brand" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
-        <span class="sidebar-brand-title text-lg font-bold text-gray-900 dark:text-white">
+      <div class="sidebar-brand sidebar-brand--row" :class="{ 'sidebar-brand-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
+        <span class="sidebar-brand-title text-[18px] font-bold leading-tight text-gray-900 dark:text-white">
           {{ siteName }}
         </span>
-        <!-- Version Badge -->
         <VersionBadge :version="siteVersion" />
       </div>
     </div>
@@ -140,19 +139,23 @@
     </nav>
 
     <!-- Bottom Section -->
-    <div class="mt-auto border-t border-gray-100 p-3 dark:border-dark-800">
-      <!-- Theme Toggle -->
+    <div class="sidebar-footer mt-auto">
+      <!-- Theme Toggle: row with moon icon, label, and a real toggle switch -->
       <button
         @click="toggleTheme"
-        class="sidebar-link mb-2 w-full"
+        class="sidebar-link sidebar-link--toggle mb-1 w-full"
         :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
         :title="sidebarCollapsed ? (isDark ? t('nav.lightMode') : t('nav.darkMode')) : undefined"
+        type="button"
       >
         <SunIcon v-if="isDark" class="h-5 w-5 flex-shrink-0 text-amber-500" />
         <MoonIcon v-else class="h-5 w-5 flex-shrink-0" />
-        <span class="sidebar-label" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">{{
-          isDark ? t('nav.lightMode') : t('nav.darkMode')
-        }}</span>
+        <span class="sidebar-label sidebar-label-flex" :class="{ 'sidebar-label-collapsed': sidebarCollapsed }" :aria-hidden="sidebarCollapsed ? 'true' : 'false'">
+          <span class="min-w-0 truncate">{{ isDark ? t('nav.lightMode') : t('nav.darkMode') }}</span>
+          <span class="theme-switch" :class="{ 'theme-switch--on': isDark }" aria-hidden="true">
+            <span class="theme-switch__knob"></span>
+          </span>
+        </span>
       </button>
 
       <!-- Collapse Button -->
@@ -161,6 +164,7 @@
         class="sidebar-link w-full"
         :class="{ 'sidebar-link-collapsed': sidebarCollapsed }"
         :title="sidebarCollapsed ? t('nav.expand') : t('nav.collapse')"
+        type="button"
       >
         <ChevronDoubleLeftIcon v-if="!sidebarCollapsed" class="h-5 w-5 flex-shrink-0" />
         <ChevronDoubleRightIcon v-else class="h-5 w-5 flex-shrink-0" />
@@ -915,6 +919,18 @@ onMounted(() => {
   max-width: 12rem;
 }
 
+.sidebar-brand--row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.sidebar-brand--row .sidebar-brand-title {
+  max-width: 96px;
+  flex: 0 1 auto;
+}
+
 .sidebar-brand-collapsed {
   max-width: 0;
   overflow: hidden;
@@ -1018,5 +1034,53 @@ onMounted(() => {
   display: block;
   width: 1.25rem;
   height: 1.25rem;
+}
+
+/* Footer area: no divider — keep the sidebar as one continuous flow */
+.sidebar-footer {
+  padding: 12px 12px 16px;
+}
+
+/* Theme toggle: place the switch on the right inside the link row */
+.sidebar-link--toggle .theme-switch {
+  margin-left: auto;
+}
+
+.theme-switch {
+  position: relative;
+  display: inline-flex;
+  width: 36px;
+  height: 20px;
+  border-radius: 999px;
+  background: rgb(226 232 240);
+  transition: background 0.18s ease;
+  flex-shrink: 0;
+}
+
+.theme-switch__knob {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.2);
+  transition: transform 0.18s ease;
+}
+
+.theme-switch--on {
+  background: rgb(124 58 237);
+}
+
+.theme-switch--on .theme-switch__knob {
+  transform: translateX(16px);
+}
+
+.dark .theme-switch {
+  background: rgba(71, 85, 105, 0.6);
+}
+.dark .theme-switch--on {
+  background: rgb(139 92 246);
 }
 </style>

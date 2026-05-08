@@ -3,7 +3,7 @@
     <button
       @click="toggleDropdown"
       :disabled="switching"
-      class="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-dark-700"
+      class="locale-switcher-btn flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-sm font-medium text-violet-700 transition-colors dark:text-violet-300"
       :title="currentLocale?.name"
     >
       <span class="text-base">{{ currentLocale?.flag }}</span>
@@ -11,7 +11,7 @@
       <Icon
         name="chevronDown"
         size="xs"
-        class="text-gray-400 transition-transform duration-200"
+        class="text-violet-500/70 transition-transform duration-200 dark:text-violet-400/70"
         :class="{ 'rotate-180': isOpen }"
       />
     </button>
@@ -99,5 +99,19 @@ onBeforeUnmount(() => {
 .dropdown-leave-to {
   opacity: 0;
   transform: scale(0.95) translateY(-4px);
+}
+
+/* Soft white pill that floats on the lavender canvas, matching the design. */
+.locale-switcher-btn {
+  background-color: rgba(255, 255, 255, 0.7);
+}
+.locale-switcher-btn:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+html.dark .locale-switcher-btn {
+  background-color: rgba(30, 41, 59, 0.5);
+}
+html.dark .locale-switcher-btn:hover {
+  background-color: rgba(30, 41, 59, 0.7);
 }
 </style>

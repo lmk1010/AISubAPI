@@ -445,7 +445,9 @@ export default {
   // Auth
   auth: {
     welcomeBack: '欢迎回来',
-    signInToAccount: '登录您的账户以继续',
+    signInToAccount: '登录您的账户以继续使用 {name}',
+    showPassword: '显示密码',
+    hidePassword: '隐藏密码',
     signIn: '登录',
     signingIn: '登录中...',
     createAccount: '创建账户',
@@ -653,6 +655,8 @@ export default {
     groupDistribution: '分组使用分布',
     tokenUsageTrend: 'Token 使用趋势',
     noDataAvailable: '暂无数据',
+    noModelDataInRange: '当前时间范围内暂无模型使用数据',
+    noTokenTrendInRange: '当前时间范围内暂无 Token 使用趋势',
     model: '模型',
     group: '分组',
     noGroup: '无分组',
@@ -1406,6 +1410,7 @@ export default {
       metricActualCost: '按实际消费',
       tokenUsageTrend: 'Token 使用趋势',
       noDataAvailable: '暂无数据',
+      noTokenTrendInRange: '当前时间范围内暂无 Token 使用趋势',
       model: '模型',
       group: '分组',
       noGroup: '无分组',

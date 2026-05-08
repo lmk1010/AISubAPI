@@ -1,6 +1,6 @@
 <template>
-  <header class="glass sticky top-0 z-30 border-b border-gray-200/50 dark:border-dark-700/50">
-    <div class="flex h-16 items-center justify-between px-4 md:px-6">
+  <header class="app-header sticky top-0 z-30">
+    <div class="flex h-[80px] items-center justify-between px-4 md:px-6 lg:px-8">
       <!-- Left: Mobile Menu Toggle + Page Title -->
       <div class="flex items-center gap-4">
         <button
@@ -11,11 +11,11 @@
           <Icon name="menu" size="md" />
         </button>
 
-        <div class="hidden lg:block">
-          <h1 class="text-lg font-semibold text-gray-900 dark:text-white">
+        <div class="hidden lg:block app-header__title">
+          <h1 class="text-[24px] font-bold leading-tight tracking-tight text-gray-900 dark:text-white">
             {{ pageTitle }}
           </h1>
-          <p v-if="pageDescription" class="text-xs text-gray-500 dark:text-dark-400">
+          <p v-if="pageDescription" class="mt-1 text-[12px] text-gray-500 dark:text-dark-400">
             {{ pageDescription }}
           </p>
         </div>
@@ -47,10 +47,10 @@
         <!-- Balance Display -->
         <div
           v-if="user"
-          class="hidden items-center gap-2 rounded-xl bg-primary-50 px-3 py-1.5 dark:bg-primary-900/20 sm:flex"
+          class="header-pill hidden items-center gap-2 sm:flex"
         >
           <svg
-            class="h-4 w-4 text-primary-600 dark:text-primary-400"
+            class="h-4 w-4 text-violet-600 dark:text-violet-400"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -62,7 +62,7 @@
               d="M2.25 18.75a60.07 60.07 0 0115.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 013 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 00-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 01-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 003 15h-.75M15 10.5a3 3 0 11-6 0 3 3 0 016 0zm3 0h.008v.008H18V10.5zm-12 0h.008v.008H6V10.5z"
             />
           </svg>
-          <span class="text-sm font-semibold text-primary-700 dark:text-primary-300">
+          <span class="text-sm font-semibold text-violet-700 dark:text-violet-300">
             ${{ user.balance?.toFixed(2) || '0.00' }}
           </span>
         </div>
@@ -71,10 +71,10 @@
         <div v-if="user" class="relative" ref="dropdownRef">
           <button
             @click="toggleDropdown"
-            class="flex items-center gap-2 rounded-xl p-1.5 transition-colors hover:bg-gray-100 dark:hover:bg-dark-800"
+            class="header-user-btn flex items-center gap-2 p-1.5 pr-2.5"
             aria-label="User Menu"
           >
-            <div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-primary-500 to-primary-600 text-sm font-medium text-white shadow-sm">
+            <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-violet-500 to-purple-600 text-sm font-semibold text-white shadow-sm">
               <img
                 v-if="avatarUrl"
                 :src="avatarUrl"
@@ -339,5 +339,53 @@ onBeforeUnmount(() => {
 .dropdown-leave-to {
   opacity: 0;
   transform: scale(0.95) translateY(-4px);
+}
+
+/* Header bar — fully transparent. The lavender canvas flows through it
+   continuously. No backdrop, no border, no shadow. */
+.app-header {
+  background-color: transparent;
+}
+
+/* Push the page title block down so the h1 baseline aligns visually
+   with the centerline of the right-side avatar/pill controls. The title
+   block contains <h1> + a smaller <p> description, which under
+   items-center makes the h1 sit in the upper half of the row by default. */
+.app-header__title {
+  transform: translateY(6px);
+}
+
+/* Header right-side pills: subtle white-ish background tints that float on
+   the lavender canvas, matching the design's soft chip look. */
+.header-pill {
+  border-radius: 10px;
+  padding: 6px 12px;
+  background-color: rgba(255, 255, 255, 0.7);
+  transition: background-color 0.15s ease;
+}
+.header-pill:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+html.dark .header-pill {
+  background-color: rgba(30, 41, 59, 0.5);
+}
+html.dark .header-pill:hover {
+  background-color: rgba(30, 41, 59, 0.7);
+}
+
+.header-user-btn {
+  border-radius: 999px;
+  background-color: rgba(255, 255, 255, 0.7);
+  padding-left: 4px;
+  transition: background-color 0.15s ease;
+}
+.header-user-btn:hover {
+  background-color: rgba(255, 255, 255, 0.95);
+}
+html.dark .header-user-btn {
+  background-color: rgba(30, 41, 59, 0.5);
+}
+html.dark .header-user-btn:hover {
+  background-color: rgba(30, 41, 59, 0.7);
 }
 </style>

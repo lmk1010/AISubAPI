@@ -1,250 +1,171 @@
 <template>
   <AppLayout>
-    <div class="space-y-6">
+    <div class="admin-dashboard space-y-4">
       <!-- Loading State -->
-      <div v-if="loading" class="flex items-center justify-center py-12">
+      <div v-if="loading" class="flex items-center justify-center py-16">
         <LoadingSpinner />
       </div>
 
       <template v-else-if="stats">
-        <!-- Row 1: Core Stats -->
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <!-- Total API Keys -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30">
-                <Icon name="key" size="md" class="text-blue-600 dark:text-blue-400" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.apiKeys') }}
-                </p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ stats.total_api_keys }}
-                </p>
-                <p class="text-xs text-green-600 dark:text-green-400">
-                  {{ stats.active_api_keys }} {{ t('common.active') }}
-                </p>
-              </div>
+        <!-- Hero panel: balance hero on the left + 7 stat tiles (3+4) on the right -->
+        <section class="hero-panel">
+          <!-- Left: balance hero with the 3D coin-card illustration asset -->
+          <div class="hero-balance">
+            <div class="hero-balance__text">
+              <p class="hero-balance__label">{{ t('dashboard.balance') }}</p>
+              <p class="hero-balance__value">${{ formatBalance(authStore.user?.balance || 0) }}</p>
+              <p class="hero-balance__hint">{{ t('common.available') }}</p>
             </div>
+            <img class="hero-balance__art" src="/balance-illustration.png?v=2" alt="" aria-hidden="true" />
           </div>
 
-          <!-- Service Accounts -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-purple-100 p-2 dark:bg-purple-900/30">
-                <Icon name="server" size="md" class="text-purple-600 dark:text-purple-400" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.accounts') }}
-                </p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ stats.total_accounts }}
-                </p>
-                <p class="text-xs">
-                  <span class="text-green-600 dark:text-green-400"
-                    >{{ stats.normal_accounts }} {{ t('common.active') }}</span
-                  >
-                  <span v-if="stats.error_accounts > 0" class="ml-1 text-red-500"
-                    >{{ stats.error_accounts }} {{ t('common.error') }}</span
-                  >
-                </p>
+          <!-- Right: 3+4 stats grid with internal hairline dividers (per design) -->
+          <div class="hero-stats">
+            <div class="hero-stats__row hero-stats__row--three">
+            <!-- Users -->
+            <div class="stat-tile">
+              <span class="stat-tile__icon stat-tile__icon--violet">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.128a9.38 9.38 0 002.625.372 9.337 9.337 0 004.121-.952 4.125 4.125 0 00-7.533-2.493M15 19.128v-.003c0-1.113-.285-2.16-.786-3.07M15 19.128v.106A12.318 12.318 0 018.624 21c-2.331 0-4.512-.645-6.374-1.766l-.001-.109a6.375 6.375 0 0111.964-3.07M12 6.375a3.375 3.375 0 11-6.75 0 3.375 3.375 0 016.75 0zm8.25 2.25a2.625 2.625 0 11-5.25 0 2.625 2.625 0 015.25 0z" />
+                </svg>
+              </span>
+              <div class="stat-tile__body">
+                <p class="stat-tile__label">{{ t('admin.dashboard.users') }}</p>
+                <p class="stat-tile__value">+{{ stats.today_new_users }}</p>
+                <p class="stat-tile__hint">{{ t('common.total') }}: {{ formatNumber(stats.total_users) }}</p>
               </div>
             </div>
-          </div>
 
-          <!-- Today Requests -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-green-100 p-2 dark:bg-green-900/30">
-                <Icon name="chart" size="md" class="text-green-600 dark:text-green-400" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.todayRequests') }}
-                </p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ stats.today_requests }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('common.total') }}: {{ formatNumber(stats.total_requests) }}
-                </p>
+            <!-- API Keys -->
+            <div class="stat-tile">
+              <span class="stat-tile__icon stat-tile__icon--blue">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 5.25a3 3 0 013 3m3 0a6 6 0 01-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1121.75 8.25z" />
+                </svg>
+              </span>
+              <div class="stat-tile__body">
+                <p class="stat-tile__label">{{ t('admin.dashboard.apiKeys') }}</p>
+                <p class="stat-tile__value">{{ stats.total_api_keys }}</p>
+                <p class="stat-tile__hint hero-positive">{{ stats.active_api_keys }} {{ t('common.active') }}</p>
               </div>
             </div>
-          </div>
 
-          <!-- New Users Today -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-emerald-100 p-2 dark:bg-emerald-900/30">
-                <Icon name="userPlus" size="md" class="text-emerald-600 dark:text-emerald-400" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.users') }}
-                </p>
-                <p class="text-xl font-bold text-emerald-600 dark:text-emerald-400">
-                  +{{ stats.today_new_users }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ t('common.total') }}: {{ formatNumber(stats.total_users) }}
-                </p>
+            <!-- Today Requests -->
+            <div class="stat-tile">
+              <span class="stat-tile__icon stat-tile__icon--green">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
+                </svg>
+              </span>
+              <div class="stat-tile__body">
+                <p class="stat-tile__label">{{ t('admin.dashboard.todayRequests') }}</p>
+                <p class="stat-tile__value">{{ stats.today_requests }}</p>
+                <p class="stat-tile__hint">{{ t('common.total') }}: {{ formatNumber(stats.total_requests) }}</p>
               </div>
             </div>
-          </div>
-        </div>
+            </div><!-- /row--three -->
 
-        <!-- Row 2: Token Stats -->
-        <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          <!-- Today Tokens -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-amber-100 p-2 dark:bg-amber-900/30">
-                <Icon name="cube" size="md" class="text-amber-600 dark:text-amber-400" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.todayTokens') }}
-                </p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ formatTokens(stats.today_tokens) }}
-                </p>
-                <p class="text-xs">
-                  <span
-                    class="text-green-600 dark:text-green-400"
-                    :title="t('admin.dashboard.actual')"
-                    >${{ formatCost(stats.today_actual_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-orange-500 dark:text-orange-400"
-                    :title="t('admin.dashboard.accountCost')"
-                    >${{ formatCost(stats.today_account_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-gray-400 dark:text-gray-500"
-                    :title="t('admin.dashboard.standard')"
-                    >${{ formatCost(stats.today_cost) }}</span
-                  >
+            <div class="hero-stats__row hero-stats__row--four">
+            <!-- Today Tokens -->
+            <div class="stat-tile">
+              <span class="stat-tile__icon stat-tile__icon--amber">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 7.5l-9-5.25L3 7.5m18 0l-9 5.25m9-5.25v9l-9 5.25M3 7.5l9 5.25M3 7.5v9l9 5.25m0-9v9" />
+                </svg>
+              </span>
+              <div class="stat-tile__body">
+                <p class="stat-tile__label">{{ t('admin.dashboard.todayTokens') }}</p>
+                <p class="stat-tile__value">{{ formatTokens(stats.today_tokens) }}</p>
+                <p class="stat-tile__hint">
+                  <span class="stat-tile__hint-strong">${{ formatCost(stats.today_actual_cost) }}</span>
+                  <span class="stat-tile__hint-muted"> / ${{ formatCost(stats.today_cost) }}</span>
                 </p>
               </div>
             </div>
-          </div>
 
-          <!-- Total Tokens -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-indigo-100 p-2 dark:bg-indigo-900/30">
-                <Icon name="database" size="md" class="text-indigo-600 dark:text-indigo-400" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.totalTokens') }}
-                </p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ formatTokens(stats.total_tokens) }}
-                </p>
-                <p class="text-xs">
-                  <span
-                    class="text-green-600 dark:text-green-400"
-                    :title="t('admin.dashboard.actual')"
-                    >${{ formatCost(stats.total_actual_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-orange-500 dark:text-orange-400"
-                    :title="t('admin.dashboard.accountCost')"
-                    >${{ formatCost(stats.total_account_cost) }}</span
-                  >
-                  <span class="text-gray-400 dark:text-gray-500"> / </span>
-                  <span
-                    class="text-gray-400 dark:text-gray-500"
-                    :title="t('admin.dashboard.standard')"
-                    >${{ formatCost(stats.total_cost) }}</span
-                  >
+            <!-- Total Tokens -->
+            <div class="stat-tile">
+              <span class="stat-tile__icon stat-tile__icon--indigo">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75" />
+                </svg>
+              </span>
+              <div class="stat-tile__body">
+                <p class="stat-tile__label">{{ t('admin.dashboard.totalTokens') }}</p>
+                <p class="stat-tile__value">{{ formatTokens(stats.total_tokens) }}</p>
+                <p class="stat-tile__hint">
+                  <span class="stat-tile__hint-strong">${{ formatCost(stats.total_actual_cost) }}</span>
+                  <span class="stat-tile__hint-muted"> / ${{ formatCost(stats.total_cost) }}</span>
                 </p>
               </div>
             </div>
-          </div>
 
-          <!-- Performance (RPM/TPM) -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-violet-100 p-2 dark:bg-violet-900/30">
-                <Icon name="bolt" size="md" class="text-violet-600 dark:text-violet-400" :stroke-width="2" />
-              </div>
-              <div class="flex-1">
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.performance') }}
+            <!-- Performance (RPM) -->
+            <div class="stat-tile">
+              <span class="stat-tile__icon stat-tile__icon--purple">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
+                </svg>
+              </span>
+              <div class="stat-tile__body">
+                <p class="stat-tile__label">{{ t('admin.dashboard.performance') }}</p>
+                <p class="stat-tile__value">
+                  {{ formatTokens(stats.rpm) }}<span class="stat-tile__value-unit"> RPM</span>
                 </p>
-                <div class="flex items-baseline gap-2">
-                  <p class="text-xl font-bold text-gray-900 dark:text-white">
-                    {{ formatTokens(stats.rpm) }}
-                  </p>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">RPM</span>
-                </div>
-                <div class="flex items-baseline gap-2">
-                  <p class="text-sm font-semibold text-violet-600 dark:text-violet-400">
-                    {{ formatTokens(stats.tpm) }}
-                  </p>
-                  <span class="text-xs text-gray-500 dark:text-gray-400">TPM</span>
-                </div>
+                <p class="stat-tile__hint">
+                  <span class="stat-tile__hint-strong">{{ formatTokens(stats.tpm) }}</span> TPM
+                </p>
               </div>
             </div>
-          </div>
 
-          <!-- Avg Response Time -->
-          <div class="card p-4">
-            <div class="flex items-center gap-3">
-              <div class="rounded-lg bg-rose-100 p-2 dark:bg-rose-900/30">
-                <Icon name="clock" size="md" class="text-rose-600 dark:text-rose-400" :stroke-width="2" />
-              </div>
-              <div>
-                <p class="text-xs font-medium text-gray-500 dark:text-gray-400">
-                  {{ t('admin.dashboard.avgResponse') }}
-                </p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">
-                  {{ formatDuration(stats.average_duration_ms) }}
-                </p>
-                <p class="text-xs text-gray-500 dark:text-gray-400">
-                  {{ stats.active_users }} {{ t('admin.dashboard.activeUsers') }}
-                </p>
+            <!-- Avg Response -->
+            <div class="stat-tile">
+              <span class="stat-tile__icon stat-tile__icon--rose">
+                <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </span>
+              <div class="stat-tile__body">
+                <p class="stat-tile__label">{{ t('admin.dashboard.avgResponse') }}</p>
+                <p class="stat-tile__value">{{ formatDurationMs(stats.average_duration_ms) }}</p>
+                <p class="stat-tile__hint">{{ t('admin.dashboard.averageTime') }}</p>
               </div>
             </div>
+            </div><!-- /row--four -->
           </div>
-        </div>
+        </section>
 
         <!-- Charts Section -->
-        <div class="space-y-6">
-          <!-- Date Range Filter -->
-          <div class="card p-4">
-            <div class="flex flex-wrap items-center gap-4">
-              <div class="flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >{{ t('admin.dashboard.timeRange') }}:</span
-                >
-                <DateRangePicker
-                  v-model:start-date="startDate"
-                  v-model:end-date="endDate"
-                  @change="onDateRangeChange"
-                />
-              </div>
-              <button @click="loadDashboardStats" :disabled="chartsLoading" class="btn btn-secondary">
-                {{ t('common.refresh') }}
+        <div class="space-y-4">
+          <!-- Date Range Filter: clean white pill row -->
+          <div class="filter-bar">
+            <div class="filter-bar__group">
+              <span class="filter-bar__label">{{ t('admin.dashboard.timeRange') }}</span>
+              <DateRangePicker
+                v-model:start-date="startDate"
+                v-model:end-date="endDate"
+                @change="onDateRangeChange"
+              />
+              <button
+                @click="loadDashboardStats"
+                :disabled="chartsLoading"
+                class="filter-bar__refresh"
+                :title="t('common.refresh')"
+                aria-label="refresh"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
               </button>
-              <div class="ml-auto flex items-center gap-2">
-                <span class="text-sm font-medium text-gray-700 dark:text-gray-300"
-                  >{{ t('admin.dashboard.granularity') }}:</span
-                >
-                <div class="w-28">
-                  <Select
-                    v-model="granularity"
-                    :options="granularityOptions"
-                    @change="loadChartData"
-                  />
-                </div>
+            </div>
+            <div class="filter-bar__group filter-bar__group--end">
+              <span class="filter-bar__label">{{ t('admin.dashboard.granularity') }}</span>
+              <div class="w-28">
+                <Select
+                  v-model="granularity"
+                  :options="granularityOptions"
+                  @change="loadChartData"
+                />
               </div>
             </div>
           </div>
@@ -269,8 +190,8 @@
           </div>
 
           <!-- User Usage Trend (Full Width) -->
-          <div class="card p-4">
-            <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
+          <div class="flat-card">
+            <h3 class="flat-card__title">
               {{ t('admin.dashboard.recentUsage') }} (Top 12)
             </h3>
             <div class="h-64">
@@ -297,6 +218,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAppStore } from '@/stores/app'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 import { adminAPI } from '@/api/admin'
@@ -309,7 +231,6 @@ import type {
 } from '@/types'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import LoadingSpinner from '@/components/common/LoadingSpinner.vue'
-import Icon from '@/components/icons/Icon.vue'
 import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import Select from '@/components/common/Select.vue'
 import ModelDistributionChart from '@/components/charts/ModelDistributionChart.vue'
@@ -339,6 +260,7 @@ ChartJS.register(
 )
 
 const appStore = useAppStore()
+const authStore = useAuthStore()
 const router = useRouter()
 const stats = ref<DashboardStats | null>(null)
 const loading = ref(false)
@@ -533,6 +455,15 @@ const formatTokens = (value: number | undefined): string => {
   return value.toLocaleString()
 }
 
+const formatBalance = (b: number): string =>
+  new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  }).format(b)
+
+const formatDurationMs = (ms: number): string =>
+  ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${Math.round(ms)}ms`
+
 const formatNumber = (value: number): string => {
   return value.toLocaleString()
 }
@@ -546,13 +477,6 @@ const formatCost = (value: number): string => {
     return value.toFixed(3)
   }
   return value.toFixed(4)
-}
-
-const formatDuration = (ms: number): string => {
-  if (ms >= 1000) {
-    return `${(ms / 1000).toFixed(2)}s`
-  }
-  return `${Math.round(ms)}ms`
 }
 
 const goToUserUsage = (item: UserSpendingRankingItem) => {
@@ -698,4 +622,439 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ============ Hero panel: balance hero on the left + 7 stat tiles on the right ============ */
+.hero-panel {
+  display: grid;
+  grid-template-columns: minmax(240px, 280px) 1fr;
+  gap: 0;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 240px;
+  box-shadow:
+    0 4px 24px rgba(124, 58, 237, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+@media (max-width: 1023px) {
+  .hero-panel {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Left: balance hero (text fills the left column with even
+   vertical distribution; the 3D illustration sits on the right and
+   overlaps with the lower text per the design mock) ---------- */
+.hero-balance {
+  position: relative;
+  padding: 22px 24px;
+  overflow: hidden;
+  isolation: isolate;
+  min-height: inherit;
+  display: flex;
+  border-right: 1px solid rgba(167, 139, 250, 0.18);
+}
+html.dark .hero-balance {
+  border-right-color: rgba(124, 58, 237, 0.28);
+}
+
+.hero-balance__text {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.hero-balance__label {
+  font-size: 13px;
+  color: rgb(71 85 105);
+  margin: 0;
+  font-weight: 500;
+}
+
+.hero-balance__value {
+  font-size: 36px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgb(124 58 237);
+  line-height: 1;
+  margin: 0;
+}
+
+.hero-balance__hint {
+  font-size: 12px;
+  color: rgb(148 163 184);
+  margin: 0;
+}
+
+.hero-balance__art {
+  position: absolute;
+  right: -10px;
+  bottom: -8px;
+  width: 180px;
+  height: 180px;
+  z-index: 0;
+  object-fit: contain;
+  user-select: none;
+  pointer-events: none;
+}
+
+@media (max-width: 1279px) {
+  .hero-balance__art {
+    width: 150px;
+    height: 150px;
+  }
+  .hero-balance__value {
+    font-size: 32px;
+  }
+}
+
+/* ---------- Right: 3+4 stats grid with internal hairline dividers ---------- */
+.hero-stats {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.hero-stats__row {
+  display: grid;
+  align-items: center;
+}
+.hero-stats__row--three {
+  grid-template-columns: repeat(3, 1fr);
+  border-bottom: 1px solid rgba(167, 139, 250, 0.18);
+}
+.hero-stats__row--four {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.hero-stats__row .stat-tile {
+  padding: 16px 20px;
+  border-right: 1px solid rgba(167, 139, 250, 0.18);
+}
+.hero-stats__row--three .stat-tile:nth-child(3),
+.hero-stats__row--four .stat-tile:nth-child(4) {
+  border-right: none;
+}
+
+@media (max-width: 1023px) {
+  .hero-stats__row .stat-tile {
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 767px) {
+  .hero-stats__row--three,
+  .hero-stats__row--four {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .hero-stats__row .stat-tile {
+    border-right: none;
+  }
+  .hero-stats__row .stat-tile:nth-child(odd) {
+    border-right: 1px solid rgba(167, 139, 250, 0.18);
+  }
+}
+
+@media (max-width: 479px) {
+  .hero-stats__row--three,
+  .hero-stats__row--four {
+    grid-template-columns: 1fr;
+  }
+  .hero-stats__row .stat-tile {
+    border-right: none !important;
+  }
+}
+
+html.dark .hero-stats__row--three {
+  border-bottom-color: rgba(124, 58, 237, 0.28);
+}
+html.dark .hero-stats__row .stat-tile {
+  border-right-color: rgba(124, 58, 237, 0.28);
+}
+
+/* ---------- Individual stat tile (rounded-square icon + label/value/hint) ---------- */
+.stat-tile {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.stat-tile__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.stat-tile__icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+.stat-tile__icon--blue {
+  background: rgb(219 234 254);
+  color: rgb(37 99 235);
+}
+.stat-tile__icon--green {
+  background: rgb(220 252 231);
+  color: rgb(22 163 74);
+}
+.stat-tile__icon--purple {
+  background: rgb(237 233 254);
+  color: rgb(124 58 237);
+}
+.stat-tile__icon--violet {
+  background: rgb(237 233 254);
+  color: rgb(139 92 246);
+}
+.stat-tile__icon--amber {
+  background: rgb(254 243 199);
+  color: rgb(217 119 6);
+}
+.stat-tile__icon--indigo {
+  background: rgb(224 231 255);
+  color: rgb(99 102 241);
+}
+.stat-tile__icon--rose {
+  background: rgb(255 228 230);
+  color: rgb(244 63 94);
+}
+
+.stat-tile__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.stat-tile__label {
+  font-size: 11px;
+  color: rgb(100 116 139);
+  margin: 0 0 2px;
+}
+
+.stat-tile__value {
+  font-size: 16px;
+  font-weight: 700;
+  color: rgb(15 23 42);
+  margin: 0 0 1px;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.stat-tile__value-unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(148 163 184);
+}
+
+.stat-tile__hint {
+  font-size: 11px;
+  color: rgb(100 116 139);
+  margin: 0;
+}
+
+.stat-tile__hint-strong {
+  color: rgb(15 23 42);
+  font-weight: 600;
+}
+
+.stat-tile__hint-muted {
+  color: rgb(148 163 184);
+}
+
+.hero-positive {
+  color: rgb(22 163 74);
+}
+
+/* Override the legacy `.card` background used by ModelDistributionChart so
+   it picks up the same translucent panel treatment as the rest of the
+   dashboard cards. Scoped via :deep() to only affect the dashboard view. */
+.admin-dashboard :deep(.card) {
+  background: rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85) !important;
+  box-shadow:
+    0 4px 24px rgba(124, 58, 237, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04) !important;
+}
+html.dark .admin-dashboard :deep(.card) {
+  background: rgba(15, 23, 42, 0.7) !important;
+  border-color: rgba(71, 85, 105, 0.5) !important;
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.25) !important;
+}
+
+/* ============ Generic flat card (User Usage Trend) ============ */
+.flat-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  padding: 18px 20px 16px;
+  box-shadow:
+    0 4px 24px rgba(124, 58, 237, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.flat-card__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgb(15 23 42);
+  margin: 0 0 16px;
+}
+
+/* ============ Filter bar (truly flat) ============ */
+.filter-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 14px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 10px;
+  box-shadow:
+    0 4px 24px rgba(124, 58, 237, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+/* Compact inner pickers/selects so the filter row stays slim. */
+.filter-bar :deep(.date-picker-trigger),
+.filter-bar :deep(.select-trigger) {
+  padding: 5px 10px;
+  font-size: 12px;
+  border-radius: 8px;
+}
+
+.filter-bar__group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.filter-bar__group--end {
+  margin-left: auto;
+}
+
+.filter-bar__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(100 116 139);
+  white-space: nowrap;
+}
+
+.filter-bar__refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  color: rgb(100 116 139);
+  background: transparent;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+.filter-bar__refresh:hover:not(:disabled) {
+  background: rgb(245 243 255);
+  color: rgb(124 58 237);
+}
+.filter-bar__refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============ Dark mode ============ */
+html.dark .hero-panel {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(18px) saturate(180%);
+  border-color: rgba(71, 85, 105, 0.5);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+html.dark .hero-balance__label {
+  color: rgb(203 213 225);
+}
+html.dark .hero-balance__value {
+  color: rgb(196 181 253);
+}
+html.dark .hero-balance__hint,
+html.dark .stat-tile__label,
+html.dark .stat-tile__hint,
+html.dark .filter-bar__label {
+  color: rgb(148 163 184);
+}
+html.dark .stat-tile__value {
+  color: rgb(248 250 252);
+}
+html.dark .stat-tile__hint-strong {
+  color: rgb(248 250 252);
+}
+
+html.dark .stat-tile__icon--blue {
+  background: rgba(37, 99, 235, 0.22);
+  color: rgb(147 197 253);
+}
+html.dark .stat-tile__icon--green {
+  background: rgba(22, 163, 74, 0.22);
+  color: rgb(134 239 172);
+}
+html.dark .stat-tile__icon--purple {
+  background: rgba(124, 58, 237, 0.22);
+  color: rgb(196 181 253);
+}
+html.dark .stat-tile__icon--violet {
+  background: rgba(139, 92, 246, 0.22);
+  color: rgb(196 181 253);
+}
+html.dark .stat-tile__icon--amber {
+  background: rgba(217, 119, 6, 0.22);
+  color: rgb(253 186 116);
+}
+html.dark .stat-tile__icon--indigo {
+  background: rgba(99, 102, 241, 0.22);
+  color: rgb(165 180 252);
+}
+html.dark .stat-tile__icon--rose {
+  background: rgba(244, 63, 94, 0.22);
+  color: rgb(252 165 165);
+}
+
+html.dark .flat-card {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(71, 85, 105, 0.5);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+html.dark .flat-card__title {
+  color: rgb(248 250 252);
+}
+
+html.dark .filter-bar {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(71, 85, 105, 0.5);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+html.dark .filter-bar__refresh:hover:not(:disabled) {
+  background: rgba(124, 58, 237, 0.15);
+  color: rgb(196 181 253);
+}
 </style>

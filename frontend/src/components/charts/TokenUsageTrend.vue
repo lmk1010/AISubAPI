@@ -1,19 +1,38 @@
 <template>
-  <div class="card p-4">
-    <h3 class="mb-4 text-sm font-semibold text-gray-900 dark:text-white">
-      {{ t('admin.dashboard.tokenUsageTrend') }}
-    </h3>
-    <div v-if="loading" class="flex h-48 items-center justify-center">
-      <LoadingSpinner />
+  <div class="trend-card">
+    <h3 class="trend-card__title">{{ t('admin.dashboard.tokenUsageTrend') }}</h3>
+
+    <div class="trend-card__body">
+      <div v-if="loading" class="trend-card__loading">
+        <LoadingSpinner />
+      </div>
+      <div v-else-if="trendData.length > 0 && chartData" class="trend-card__chart">
+        <Line :data="chartData" :options="lineOptions" />
+      </div>
+      <div v-else class="trend-card__empty">
+        <div class="trend-card__empty-art" aria-hidden="true">
+          <svg viewBox="0 0 200 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="trendGrad" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stop-color="#3b82f6" />
+                <stop offset="50%" stop-color="#7c3aed" />
+                <stop offset="100%" stop-color="#06b6d4" />
+              </linearGradient>
+            </defs>
+            <path d="M 4 60 Q 30 40 50 50 T 100 30 T 150 40 T 196 20" stroke="url(#trendGrad)" stroke-width="2.5" fill="none" stroke-linecap="round" />
+            <path d="M 4 60 Q 30 40 50 50 T 100 30 T 150 40 T 196 20 L 196 76 L 4 76 Z" fill="url(#trendGrad)" opacity="0.08" />
+            <circle cx="196" cy="20" r="3.5" fill="#7c3aed" />
+          </svg>
+        </div>
+        <p class="trend-card__empty-title">{{ t('admin.dashboard.noDataAvailable') }}</p>
+        <p class="trend-card__empty-hint">{{ t('admin.dashboard.noTokenTrendInRange') }}</p>
+      </div>
     </div>
-    <div v-else-if="trendData.length > 0 && chartData" class="h-48">
-      <Line :data="chartData" :options="lineOptions" />
-    </div>
-    <div
-      v-else
-      class="flex h-48 items-center justify-center text-sm text-gray-500 dark:text-gray-400"
-    >
-      {{ t('admin.dashboard.noDataAvailable') }}
+
+    <div class="trend-card__legend">
+      <span class="legend-pill"><i class="legend-dot" style="background:#3b82f6"></i>{{ t('admin.dashboard.input') }} Token</span>
+      <span class="legend-pill"><i class="legend-dot" style="background:#10b981"></i>{{ t('admin.dashboard.output') }} Token</span>
+      <span class="legend-pill"><i class="legend-dot" style="background:#7c3aed"></i>{{ t('common.total') }}</span>
     </div>
   </div>
 </template>
@@ -226,3 +245,125 @@ const formatCost = (value: number): string => {
   return value.toFixed(4)
 }
 </script>
+
+<style scoped>
+.trend-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(18px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  border-radius: 12px;
+  box-shadow:
+    0 4px 24px rgba(124, 58, 237, 0.08),
+    0 1px 2px rgba(15, 23, 42, 0.04);
+  padding: 16px 18px 14px;
+  min-height: 240px;
+}
+
+.trend-card__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgb(15 23 42);
+  margin: 0 0 16px;
+}
+
+.trend-card__body {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.trend-card__loading,
+.trend-card__chart {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.trend-card__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.trend-card__empty-art {
+  width: 220px;
+  height: 90px;
+}
+
+.trend-card__empty-title {
+  font-size: 14px;
+  color: rgb(71 85 105);
+  font-weight: 500;
+  margin: 4px 0 0;
+}
+
+.trend-card__empty-hint {
+  font-size: 12px;
+  color: rgb(148 163 184);
+  margin: 0;
+}
+
+.trend-card__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  padding-top: 16px;
+  margin-top: auto;
+}
+
+.legend-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: rgb(100 116 139);
+}
+
+.legend-pill::after {
+  content: '';
+  display: inline-block;
+  width: 18px;
+  height: 1.5px;
+  background: currentColor;
+  margin-left: 4px;
+  opacity: 0.5;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+html.dark .trend-card {
+  background: rgba(15, 23, 42, 0.7);
+  border-color: rgba(71, 85, 105, 0.5);
+  box-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    0 1px 2px rgba(0, 0, 0, 0.25);
+}
+html.dark .trend-card__title {
+  color: rgb(248 250 252);
+}
+html.dark .trend-card__empty-title {
+  color: rgb(203 213 225);
+}
+html.dark .trend-card__empty-hint,
+html.dark .legend-pill {
+  color: rgb(148 163 184);
+}
+</style>

@@ -351,9 +351,9 @@ const routes: RouteRecordRaw[] = [
     meta: {
       requiresAuth: true,
       requiresAdmin: true,
-      title: 'Admin Dashboard',
-      titleKey: 'admin.dashboard.title',
-      descriptionKey: 'admin.dashboard.description'
+      title: 'Dashboard',
+      titleKey: 'nav.dashboard',
+      descriptionKey: 'dashboard.welcomeMessage'
     }
   },
   {
