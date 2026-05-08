@@ -37,6 +37,15 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/products',
+    name: 'Products',
+    component: () => import('@/views/marketing/ProductsView.vue'),
+    meta: {
+      requiresAuth: false,
+      title: 'Products'
+    }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: () => import('@/views/auth/LoginView.vue'),

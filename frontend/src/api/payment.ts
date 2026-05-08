@@ -27,6 +27,11 @@ export const paymentAPI = {
     return apiClient.get<SubscriptionPlan[]>('/payment/plans')
   },
 
+  /** Get publicly available subscription plans (marketing page, no auth) */
+  getPublicPlans() {
+    return apiClient.get<SubscriptionPlan[]>('/payment/public/plans')
+  },
+
   /** Get available payment channels */
   getChannels() {
     return apiClient.get<PaymentChannel[]>('/payment/channels')

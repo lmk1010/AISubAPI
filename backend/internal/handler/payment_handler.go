@@ -194,6 +194,39 @@ func parseFeatures(raw string) []string {
 	return out
 }
 
+// GetPublicPlans returns the public marketing-page catalog of subscription
+// plans for sale. Same data shape as the plans field in GetCheckoutInfo, but
+// without payment methods or user/config data — safe to serve unauthenticated.
+// GET /api/v1/payment/public/plans
+func (h *PaymentHandler) GetPublicPlans(c *gin.Context) {
+	ctx := c.Request.Context()
+	plans, err := h.configService.ListPlansForSale(ctx)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	groupInfo := h.configService.GetGroupInfoMap(ctx, plans)
+	out := make([]checkoutPlan, 0, len(plans))
+	for _, p := range plans {
+		gi := groupInfo[p.GroupID]
+		out = append(out, checkoutPlan{
+			ID: int64(p.ID), GroupID: p.GroupID,
+			GroupPlatform: gi.Platform, GroupName: gi.Name,
+			RateMultiplier:  gi.RateMultiplier,
+			DailyLimitUSD:   gi.DailyLimitUSD,
+			WeeklyLimitUSD:  gi.WeeklyLimitUSD,
+			MonthlyLimitUSD: gi.MonthlyLimitUSD,
+			ModelScopes:     gi.ModelScopes,
+			Name:            p.Name, Description: p.Description,
+			Price: p.Price, OriginalPrice: p.OriginalPrice,
+			ValidityDays: p.ValidityDays, ValidityUnit: p.ValidityUnit,
+			Features:    parseFeatures(p.Features),
+			ProductName: p.ProductName,
+		})
+	}
+	response.Success(c, out)
+}
+
 // GetLimits returns per-payment-type limits derived from enabled provider instances.
 // GET /api/v1/payment/limits
 func (h *PaymentHandler) GetLimits(c *gin.Context) {

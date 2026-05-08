@@ -52,14 +52,14 @@
 
         <!-- Center nav -->
         <ul class="center-nav">
-          <li><a href="#products">{{ t('home.nav.products') }}</a></li>
-          <li><a href="#pricing">{{ t('home.nav.pricing') }}</a></li>
-          <li><a href="#blog">{{ t('home.nav.blog') }}</a></li>
+          <li><router-link to="/products">{{ t('home.nav.products') }}</router-link></li>
+          <li><router-link to="/pricing">{{ t('home.nav.pricing') }}</router-link></li>
+          <li><router-link to="/blog">{{ t('home.nav.blog') }}</router-link></li>
           <li>
             <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer">
               {{ t('home.nav.docs') }}
             </a>
-            <a v-else href="#docs">{{ t('home.nav.docs') }}</a>
+            <router-link v-else to="/docs">{{ t('home.nav.docs') }}</router-link>
           </li>
           <li><a href="#changelog">{{ t('home.nav.changelog') }}</a></li>
           <li><a :href="githubUrl" target="_blank" rel="noopener noreferrer">{{ t('home.nav.community') }}</a></li>
@@ -301,27 +301,26 @@ onMounted(() => {
 /* ── Background ──────────────────────────────────── */
 .bg-layer {
   position: absolute;
-  /* Offset the wave band so it sits below the header area, leaving the
-     top of the page clean. Both top and bottom edges fade out so the
-     wave reads as a floating illustration band, not a top-anchored wash. */
-  top: 80px;
-  left: 0;
-  right: 0;
-  height: 55vh;
+  /* Cover the full shell — no fixed band edges. The mask below shapes
+     where the illustration is visible, so the image dissolves into the
+     page bg instead of being clipped to a rectangular band. */
+  inset: 0;
   pointer-events: none;
   overflow: hidden;
   -webkit-mask-image: linear-gradient(
     180deg,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 65%,
+    rgba(0, 0, 0, 0) 8%,
+    rgba(0, 0, 0, 1) 28%,
+    rgba(0, 0, 0, 1) 92%,
     rgba(0, 0, 0, 0) 100%
   );
   mask-image: linear-gradient(
     180deg,
     rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 1) 18%,
-    rgba(0, 0, 0, 1) 65%,
+    rgba(0, 0, 0, 0) 8%,
+    rgba(0, 0, 0, 1) 28%,
+    rgba(0, 0, 0, 1) 92%,
     rgba(0, 0, 0, 0) 100%
   );
 }
@@ -584,15 +583,16 @@ onMounted(() => {
   gap: 9px;
   padding: 8px 16px 8px 12px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.6);
   font-size: 13px;
   font-weight: 600;
   color: #1f2937;
   box-shadow:
-    0 8px 24px -10px rgba(15, 23, 42, 0.18),
-    0 1px 0 rgba(255, 255, 255, 0.6) inset;
-  backdrop-filter: blur(10px);
+    0 8px 28px -10px rgba(15, 23, 42, 0.15),
+    0 1px 0 rgba(255, 255, 255, 0.7) inset;
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
   z-index: 5;
   white-space: nowrap;
 }

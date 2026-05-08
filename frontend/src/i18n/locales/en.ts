@@ -134,6 +134,35 @@ export default {
     }
   },
 
+  marketing: {
+    products: {
+      title: 'Subscription Products',
+      desc: 'Pick a plan that suits your team — flexible monthly or yearly billing, instant access to top AI models.',
+      loading: 'Loading products…',
+      empty: 'No products available yet. Please check back soon.',
+      retry: 'Reload',
+      loadFailed: 'Failed to load. Please try again.',
+      subscribe: 'Subscribe',
+      signUpToBuy: 'Sign up to buy',
+      rate: 'Rate',
+      dailyLimit: 'Daily',
+      weeklyLimit: 'Weekly',
+      monthlyLimit: 'Monthly',
+      quota: 'Quota',
+      unlimited: 'Unlimited',
+      models: 'Models',
+      week: 'week',
+      month: 'mo',
+      year: 'yr',
+      discountSuffix: '% off',
+      unit: {
+        days: 'd',
+        months: 'mo',
+        years: 'yr'
+      }
+    }
+  },
+
   // Key Usage Query Page
   keyUsage: {
     title: 'API Key Usage',

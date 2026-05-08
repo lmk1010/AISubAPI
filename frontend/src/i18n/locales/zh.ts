@@ -137,6 +137,36 @@ export default {
     }
   },
 
+  // 营销页（产品 / 价格 / 博客 / 文档）
+  marketing: {
+    products: {
+      title: '订阅产品',
+      desc: '选择适合你的 AI 订阅方案，按月/按年灵活付费，立刻接入主流模型。',
+      loading: '正在加载产品信息…',
+      empty: '暂无可售产品，敬请期待。',
+      retry: '重新加载',
+      loadFailed: '加载失败，请稍后重试',
+      subscribe: '立即订阅',
+      signUpToBuy: '注册购买',
+      rate: '倍率',
+      dailyLimit: '日限额',
+      weeklyLimit: '周限额',
+      monthlyLimit: '月限额',
+      quota: '额度',
+      unlimited: '不限',
+      models: '可用模型',
+      week: '周',
+      month: '月',
+      year: '年',
+      discountSuffix: '折',
+      unit: {
+        days: '天',
+        months: '月',
+        years: '年'
+      }
+    }
+  },
+
   // Key Usage Query Page
   keyUsage: {
     title: 'API Key 用量查询',
