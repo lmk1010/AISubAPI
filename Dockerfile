@@ -20,8 +20,10 @@ FROM ${NODE_IMAGE} AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Install pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+# Install pnpm — pinned so Docker matches local (pnpm 10.13+ tightened
+# ERR_PNPM_IGNORED_BUILDS handling and ignores pnpm.onlyBuiltDependencies
+# differently in non-TTY mode).
+RUN corepack enable && corepack prepare pnpm@10.12.1 --activate
 
 # Install dependencies first (better caching)
 COPY frontend/package.json frontend/pnpm-lock.yaml ./
