@@ -547,5 +547,3 @@ html.dark .table-note {
   color: #64748b;
 }
 </style>
-</content>
-</invoke>
