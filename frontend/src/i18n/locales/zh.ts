@@ -105,6 +105,33 @@ export default {
       description: '注册即可获得免费试用额度，体验一站式 AI 服务',
       button: '免费注册'
     },
+    // 顶部导航
+    nav: {
+      products: '产品',
+      pricing: '价格',
+      blog: '博客',
+      docs: '文档',
+      changelog: '更新日志',
+      community: '社区'
+    },
+    // 新版 Hero
+    heroBadge: '一站式 AI API 订阅与转发平台',
+    heroTitleLead: '一个 API，优雅编排',
+    heroTitleAi: 'AI',
+    heroTitleTail: '能力网络',
+    heroDescNew: '统一接入主流模型，灵活路由、智能负载与成本优化，让开发者专注创造，交付更快，体验更稳。',
+    viewDocsBtn: '查看文档',
+    // 底部能力点
+    stats: {
+      uptimeValue: '99.9%',
+      uptimeLabel: '可用性',
+      latencyValue: '低延迟',
+      latencyLabel: '全球加速网络',
+      costValue: '成本优化',
+      costLabel: '智能路由与缓存',
+      compatValue: '标准兼容',
+      compatLabel: 'OpenAI 兼容协议'
+    },
     footer: {
       allRightsReserved: '保留所有权利。'
     }

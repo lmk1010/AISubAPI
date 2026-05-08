@@ -105,6 +105,30 @@ export default {
       description: 'Sign up now and get free trial credits to experience seamless AI access',
       button: 'Sign Up Free'
     },
+    nav: {
+      products: 'Products',
+      pricing: 'Pricing',
+      blog: 'Blog',
+      docs: 'Docs',
+      changelog: 'Changelog',
+      community: 'Community'
+    },
+    heroBadge: 'Unified AI API Subscription & Routing Platform',
+    heroTitleLead: 'One API to orchestrate the',
+    heroTitleAi: 'AI',
+    heroTitleTail: 'capability network.',
+    heroDescNew: 'Unified access to major models with smart routing, intelligent load balancing, and cost optimization — so you can focus on building.',
+    viewDocsBtn: 'View Docs',
+    stats: {
+      uptimeValue: '99.9%',
+      uptimeLabel: 'Uptime',
+      latencyValue: 'Low Latency',
+      latencyLabel: 'Global Edge Network',
+      costValue: 'Cost Optimized',
+      costLabel: 'Smart Routing & Cache',
+      compatValue: 'Standard Compatible',
+      compatLabel: 'OpenAI-Compatible API'
+    },
     footer: {
       allRightsReserved: 'All rights reserved.'
     }
