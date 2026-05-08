@@ -66,8 +66,8 @@
 @layer components {
   /* ============ 按钮样式 ============ */
   .btn {
-    @apply inline-flex items-center justify-center gap-2;
-    @apply rounded-xl px-4 py-2.5 text-sm font-medium;
+    @apply inline-flex items-center justify-center gap-1.5;
+    @apply rounded-lg px-3.5 py-2 text-[13px] font-medium;
     @apply transition-all duration-200 ease-out;
     @apply focus:outline-none focus:ring-2 focus:ring-primary-500/50 focus:ring-offset-2;
     @apply disabled:transform-none disabled:cursor-not-allowed disabled:opacity-50;
@@ -136,24 +136,24 @@
   }
 
   .btn-sm {
-    @apply rounded-lg px-3 py-1.5 text-xs;
+    @apply rounded-md px-2.5 py-1 text-xs;
   }
 
   .btn-md {
-    @apply rounded-xl px-4 py-2 text-sm;
+    @apply rounded-lg px-3.5 py-2 text-[13px];
   }
 
   .btn-lg {
-    @apply rounded-2xl px-6 py-3 text-base;
+    @apply rounded-xl px-5 py-2.5 text-sm;
   }
 
   .btn-icon {
-    @apply rounded-xl p-2.5;
+    @apply rounded-lg p-2;
   }
 
   /* ============ 输入框样式 ============ */
   .input {
-    @apply w-full rounded-xl px-4 py-2.5 text-sm;
+    @apply w-full rounded-lg px-3 py-2 text-[13px];
     @apply bg-white dark:bg-dark-800;
     @apply border border-gray-200 dark:border-dark-600;
     @apply text-gray-900 dark:text-gray-100;
@@ -168,7 +168,7 @@
   }
 
   .input-label {
-    @apply mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300;
+    @apply mb-1 block text-[13px] font-medium text-gray-700 dark:text-gray-300;
   }
 
   .input-hint {
@@ -206,18 +206,33 @@
     @apply transition-all duration-300;
   }
 
-  /* ============ 卡片样式 ============ */
+  /* ============ 卡片样式 — frosted glass on the lavender canvas ============ */
   .card {
-    @apply bg-white dark:bg-dark-800/50;
-    @apply rounded-2xl;
-    @apply border border-gray-100 dark:border-dark-700/50;
-    @apply shadow-card;
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.85);
+    border-radius: 12px;
+    box-shadow:
+      0 4px 24px rgba(124, 58, 237, 0.06),
+      0 1px 2px rgba(15, 23, 42, 0.04);
     @apply transition-all duration-300;
+  }
+  html.dark .card {
+    background: rgba(15, 23, 42, 0.7);
+    border-color: rgba(71, 85, 105, 0.5);
+    box-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.35),
+      0 1px 2px rgba(0, 0, 0, 0.25);
   }
 
   .card-hover {
-    @apply hover:-translate-y-0.5 hover:shadow-card-hover;
-    @apply hover:border-gray-200 dark:hover:border-dark-600;
+    @apply hover:-translate-y-0.5;
+  }
+  .card-hover:hover {
+    box-shadow:
+      0 8px 32px rgba(124, 58, 237, 0.1),
+      0 2px 4px rgba(15, 23, 42, 0.06);
   }
 
   .card-glass {
@@ -229,28 +244,28 @@
 
   .card-header {
     @apply border-b border-gray-100 dark:border-dark-700;
-    @apply px-6 py-4;
+    @apply px-4 py-3;
   }
 
   .card-body {
-    @apply p-6;
+    @apply p-4;
   }
 
   .card-footer {
     @apply border-t border-gray-100 dark:border-dark-700;
-    @apply px-6 py-4;
+    @apply px-4 py-3;
   }
 
   /* ============ 统计卡片 ============ */
   .stat-card {
-    @apply card p-5;
-    @apply flex items-start gap-4;
+    @apply card p-4;
+    @apply flex items-start gap-3;
   }
 
   .stat-icon {
-    @apply h-12 w-12 rounded-xl;
+    @apply h-10 w-10 rounded-lg;
     @apply flex items-center justify-center;
-    @apply text-xl;
+    @apply text-base;
   }
 
   .stat-icon-primary {
@@ -270,11 +285,11 @@
   }
 
   .stat-value {
-    @apply text-2xl font-bold text-gray-900 dark:text-white truncate;
+    @apply text-xl font-bold text-gray-900 dark:text-white truncate;
   }
 
   .stat-label {
-    @apply text-sm text-gray-500 dark:text-dark-400;
+    @apply text-xs text-gray-500 dark:text-dark-400;
   }
 
   .stat-trend {
@@ -291,22 +306,22 @@
 
   /* ============ 表格样式 ============ */
   .table-container {
-    @apply overflow-x-auto rounded-xl border border-gray-200 dark:border-dark-700;
+    @apply overflow-x-auto rounded-lg border border-gray-200 dark:border-dark-700;
   }
 
   .table {
-    @apply w-full text-sm;
+    @apply w-full text-[13px];
   }
 
   .table th {
-    @apply px-4 py-3 text-left font-medium;
+    @apply px-3 py-2 text-left font-medium;
     @apply text-gray-600 dark:text-dark-300;
-    @apply bg-gray-50 dark:bg-dark-800/50;
+    @apply bg-gray-50/70 dark:bg-dark-800/50;
     @apply border-b border-gray-200 dark:border-dark-700;
   }
 
   .table td {
-    @apply px-4 py-3;
+    @apply px-3 py-2;
     @apply text-gray-700 dark:text-gray-300;
     @apply border-b border-gray-100 dark:border-dark-800;
   }
@@ -380,32 +395,29 @@
     @apply w-full;
     @apply max-h-[95vh] sm:max-h-[90vh];
     @apply bg-white dark:bg-dark-800;
-    @apply rounded-2xl shadow-2xl;
+    @apply rounded-xl shadow-2xl;
     @apply border border-gray-200 dark:border-dark-700;
     @apply flex flex-col;
   }
 
   .modal-header {
     @apply border-b border-gray-200 px-4 py-3 dark:border-dark-700;
-    @apply sm:px-6 sm:py-4;
     @apply flex items-center justify-between;
     @apply flex-shrink-0;
   }
 
   .modal-title {
-    @apply text-lg font-semibold text-gray-900 dark:text-white;
+    @apply text-base font-semibold text-gray-900 dark:text-white;
   }
 
   .modal-body {
     @apply px-4 py-3;
-    @apply sm:px-6 sm:py-4;
     @apply flex-1 overflow-y-auto;
   }
 
   .modal-footer {
     @apply border-t border-gray-200 px-4 py-3 dark:border-dark-700;
-    @apply sm:px-6 sm:py-4;
-    @apply flex items-center justify-end gap-3;
+    @apply flex items-center justify-end gap-2;
     @apply flex-shrink-0;
   }
 
@@ -472,23 +484,23 @@
   .dialog-container {
     @apply flex w-full flex-col;
     @apply max-h-[90vh];
-    @apply rounded-2xl bg-white dark:bg-dark-800;
+    @apply rounded-xl bg-white dark:bg-dark-800;
     @apply shadow-xl;
   }
 
   .dialog-header {
-    @apply border-b border-gray-100 px-6 py-4 dark:border-dark-700;
+    @apply border-b border-gray-100 px-4 py-3 dark:border-dark-700;
     @apply flex items-center justify-between;
   }
 
   .dialog-body {
-    @apply overflow-y-auto px-6 py-4;
+    @apply overflow-y-auto px-4 py-3;
   }
 
   .dialog-footer {
-    @apply border-t border-gray-100 px-6 py-4 dark:border-dark-700;
+    @apply border-t border-gray-100 px-4 py-3 dark:border-dark-700;
     @apply bg-gray-50/60 dark:bg-dark-900/40;
-    @apply flex items-center justify-end gap-3;
+    @apply flex items-center justify-end gap-2;
   }
 
   /* ============ Toast 通知 ============ */
@@ -584,15 +596,15 @@
 
   /* ============ 页面头部 ============ */
   .page-header {
-    @apply mb-6;
+    @apply mb-4;
   }
 
   .page-title {
-    @apply text-2xl font-bold text-gray-900 dark:text-white;
+    @apply text-xl font-bold text-gray-900 dark:text-white;
   }
 
   .page-description {
-    @apply mt-1 text-sm text-gray-500 dark:text-dark-400;
+    @apply mt-0.5 text-xs text-gray-500 dark:text-dark-400;
   }
 
   /* ============ 空状态 ============ */
