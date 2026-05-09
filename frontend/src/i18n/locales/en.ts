@@ -4026,6 +4026,11 @@ export default {
       upstreamCostLabel: 'Upstream Cost',
       internalRevenueLabel: 'Internal Revenue',
       dailyTrend: 'Daily Trend',
+      channelName: 'Channel',
+      configure: 'Configure',
+      saveConfig: 'Save Config',
+      configSaved: 'Upstream config saved',
+      balance: 'Balance',
     },
 
     // Proxies

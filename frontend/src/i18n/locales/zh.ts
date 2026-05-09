@@ -4125,6 +4125,11 @@ export default {
       upstreamCostLabel: '上游成本',
       internalRevenueLabel: '内部收入',
       dailyTrend: '每日趋势',
+      channelName: '渠道',
+      configure: '配置',
+      saveConfig: '保存配置',
+      configSaved: '上游配置已保存',
+      balance: '余额',
     },
 
     // Proxies Management
