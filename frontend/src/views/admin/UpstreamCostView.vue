@@ -349,10 +349,32 @@ interface ChannelCostResult {
   trend: TrendDataPoint[]
 }
 
+const CACHE_KEY = 'upstream-cost-cache'
+const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
+
 const costResults = reactive<Record<number, ChannelCostResult>>({})
 const fetchingChannels = reactive<Record<number, boolean>>({})
 const fetchErrors = reactive<Record<number, string>>({})
 const batchFetching = ref(false)
+
+function loadCache() {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return
+    const { ts, data, range } = JSON.parse(raw)
+    if (Date.now() - ts > CACHE_TTL) return
+    if (range !== dateRange.value) return
+    for (const [k, v] of Object.entries(data)) {
+      costResults[Number(k)] = v as ChannelCostResult
+    }
+  } catch { /* ignore */ }
+}
+
+function saveCache() {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), range: dateRange.value, data: { ...costResults } }))
+  } catch { /* ignore */ }
+}
 
 const globalSummary = computed(() => {
   const results = Object.values(costResults)
@@ -400,6 +422,7 @@ async function fetchSingleChannelCost(accountId: number) {
     const profitLoss = internalRevenue - upstreamCost
     const marginPct = upstreamCost > 0 ? (profitLoss / upstreamCost) * 100 : 0
     costResults[accountId] = { userInfo: ui, stat: st, upstreamCost, internalRevenue, profitLoss, marginPct, trend: mergedTrend }
+    saveCache()
   } catch (err: any) {
     fetchErrors[accountId] = err?.message || 'Failed'
   } finally {
@@ -497,5 +520,14 @@ function formatTime(ts: number): string {
   return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
 }
 
-onMounted(() => loadAccounts())
+onMounted(async () => {
+  loadCache()
+  await loadAccounts()
+  // Auto-fetch for all configured accounts if cache is empty or stale
+  const configured = accounts.value.filter(acc => !!getUpstreamCfg(acc))
+  const hasCachedData = configured.some(acc => !!costResults[acc.id])
+  if (configured.length > 0 && !hasCachedData) {
+    fetchAllChannelCosts()
+  }
+})
 </script>
