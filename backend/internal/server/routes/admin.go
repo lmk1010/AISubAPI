@@ -97,6 +97,9 @@ func RegisterAdminRoutes(
 
 		// 邀请返利（专属用户管理）
 		registerAffiliateRoutes(admin, h)
+
+		// 上游成本分析
+		registerUpstreamCostRoutes(admin, h)
 	}
 }
 
@@ -618,6 +621,16 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		templates.DELETE("/:id", h.Admin.ChannelMonitorTemplate.Delete)
 		templates.GET("/:id/monitors", h.Admin.ChannelMonitorTemplate.AssociatedMonitors)
 		templates.POST("/:id/apply", h.Admin.ChannelMonitorTemplate.Apply)
+	}
+}
+
+func registerUpstreamCostRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
+	uc := admin.Group("/upstream-cost")
+	{
+		uc.POST("/test-connection", h.Admin.UpstreamCost.TestConnection)
+		uc.POST("/user-info", h.Admin.UpstreamCost.GetUserInfo)
+		uc.POST("/stats", h.Admin.UpstreamCost.GetStats)
+		uc.POST("/logs", h.Admin.UpstreamCost.GetLogs)
 	}
 }
 

@@ -24,6 +24,17 @@
         </svg>
         <!-- Setup Token icon -->
         <Icon v-else-if="type === 'setup-token'" name="shield" size="xs" />
+        <!-- Upstream icon -->
+        <svg
+          v-else-if="type === 'upstream'"
+          class="h-3 w-3"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+        </svg>
         <!-- API Key icon -->
         <Icon v-else-if="type === 'service_account'" name="cloud" size="xs" />
         <Icon v-else name="key" size="xs" />
@@ -87,6 +98,8 @@ const typeLabel = computed(() => {
       return 'Token'
     case 'apikey':
       return 'Key'
+    case 'upstream':
+      return 'Upstream'
     case 'bedrock':
       return 'AWS'
     case 'service_account':
@@ -130,6 +143,10 @@ const platformClass = computed(() => {
 })
 
 const typeClass = computed(() => {
+  // Upstream accounts use amber to clearly stand out
+  if (props.type === 'upstream') {
+    return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
+  }
   if (props.platform === 'anthropic') {
     return 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'
   }

@@ -493,6 +493,18 @@ const routes: RouteRecordRaw[] = [
     }
   },
   {
+    path: '/admin/upstream-cost',
+    name: 'AdminUpstreamCost',
+    component: () => import('@/views/admin/UpstreamCostView.vue'),
+    meta: {
+      requiresAuth: true,
+      requiresAdmin: true,
+      title: 'Upstream Cost Analysis',
+      titleKey: 'admin.upstreamCost.title',
+      descriptionKey: 'admin.upstreamCost.description'
+    }
+  },
+  {
     path: '/admin/announcements',
     name: 'AdminAnnouncements',
     component: () => import('@/views/admin/AnnouncementsView.vue'),
