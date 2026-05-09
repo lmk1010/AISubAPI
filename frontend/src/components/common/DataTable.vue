@@ -78,7 +78,7 @@
             scope="col"
             :class="[
               'sticky-header-cell py-2 text-left text-[11px] font-medium uppercase tracking-wider text-slate-500/80 dark:text-dark-400',
-              getAdaptivePaddingClass(),
+              getAdaptivePaddingClass(column),
               { 'cursor-pointer hover:bg-violet-50/60 dark:hover:bg-dark-700': column.sortable },
               getStickyColumnClass(column, index),
               column.class
@@ -121,7 +121,7 @@
       <tbody class="table-body divide-y divide-slate-100/40 dark:divide-dark-700/40">
         <!-- Loading skeleton -->
         <tr v-if="loading" v-for="i in 5" :key="i">
-          <td v-for="column in columns" :key="column.key" :class="['whitespace-nowrap py-2', getAdaptivePaddingClass()]">
+          <td v-for="column in columns" :key="column.key" :class="['whitespace-nowrap py-2', getAdaptivePaddingClass(column)]">
             <div class="animate-pulse">
               <div class="h-4 w-3/4 rounded bg-gray-200 dark:bg-dark-700"></div>
             </div>
@@ -169,7 +169,7 @@
               :key="column.key"
               :class="[
                 'whitespace-nowrap py-1.5 text-xs text-gray-900 dark:text-gray-100',
-                getAdaptivePaddingClass(),
+                getAdaptivePaddingClass(column),
                 getStickyColumnClass(column, colIndex),
                 column.class
               ]"
@@ -636,9 +636,11 @@ const getStickyColumnClass = (column: Column, index: number) => {
 }
 
 // 根据列数自适应调整内边距
-const getAdaptivePaddingClass = () => {
-  const columnCount = props.columns.length
+const getAdaptivePaddingClass = (column?: Column) => {
+  // select（勾选）列固定窄宽居中，匹配 --select-col-width
+  if (column?.key === 'select') return 'px-2 w-10 text-center'
 
+  const columnCount = props.columns.length
   // 列数越多，内边距越小
   if (columnCount >= 10) {
     return 'px-2' // 8px
@@ -726,7 +728,7 @@ defineExpose({
 
 /* Desktop table wrapper — transparent, glass provided by parent container */
 .table-wrapper {
-  --select-col-width: 52px;
+  --select-col-width: 40px;
   position: relative;
   overflow-x: auto;
   overflow-y: auto;
