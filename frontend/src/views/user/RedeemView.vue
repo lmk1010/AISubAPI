@@ -1,81 +1,79 @@
 <template>
   <AppLayout>
     <div class="mx-auto max-w-2xl space-y-6">
-      <!-- Current Balance Card -->
-      <div class="card overflow-hidden">
-        <div class="bg-gradient-to-br from-primary-500 to-primary-600 px-6 py-8 text-center">
-          <div
-            class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm"
-          >
-            <Icon name="creditCard" size="xl" class="text-white" />
+      <!-- Stat Cards Row -->
+      <div class="grid grid-cols-3 gap-4">
+        <!-- Balance -->
+        <div class="card flex items-center gap-3 p-4">
+          <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-900/30">
+            <Icon name="creditCard" size="md" class="text-primary-600 dark:text-primary-400" />
           </div>
-          <p class="text-sm font-medium text-primary-100">{{ t('redeem.currentBalance') }}</p>
-          <p class="mt-2 text-4xl font-bold text-white">
-            ${{ user?.balance?.toFixed(2) || '0.00' }}
-          </p>
-          <p class="mt-2 text-sm text-primary-100">
-            {{ t('redeem.concurrency') }}: {{ user?.concurrency || 0 }} {{ t('redeem.requests') }}
-          </p>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('redeem.currentBalance') }}</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white">${{ user?.balance?.toFixed(2) || '0.00' }}</p>
+          </div>
+        </div>
+        <!-- Concurrency -->
+        <div class="card flex items-center gap-3 p-4">
+          <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-blue-100 dark:bg-blue-900/30">
+            <Icon name="bolt" size="md" class="text-blue-600 dark:text-blue-400" />
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('redeem.concurrency') }}</p>
+            <p class="text-lg font-bold text-gray-900 dark:text-white">{{ user?.concurrency || 0 }} <span class="text-sm font-normal text-gray-400 dark:text-gray-500">{{ t('redeem.requests') }}</span></p>
+          </div>
+        </div>
+        <!-- Recent Redeem -->
+        <div class="card flex items-center gap-3 p-4">
+          <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30">
+            <Icon name="clock" size="md" class="text-emerald-600 dark:text-emerald-400" />
+          </div>
+          <div class="min-w-0">
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('redeem.recentActivity') }}</p>
+            <p v-if="history.length > 0" class="truncate text-sm font-semibold text-gray-900 dark:text-white">{{ formatHistoryValue(history[0]) }}</p>
+            <p v-else class="text-sm text-gray-400 dark:text-gray-500">—</p>
+          </div>
         </div>
       </div>
 
       <!-- Redeem Form -->
-      <div class="card">
-        <div class="p-6">
-          <form @submit.prevent="handleRedeem" class="space-y-5">
-            <div>
-              <label for="code" class="input-label">
-                {{ t('redeem.redeemCodeLabel') }}
-              </label>
-              <div class="relative mt-1">
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-                  <Icon name="gift" size="md" class="text-gray-400 dark:text-dark-500" />
-                </div>
-                <input
-                  id="code"
-                  v-model="redeemCode"
-                  type="text"
-                  required
-                  :placeholder="t('redeem.redeemCodePlaceholder')"
-                  :disabled="submitting"
-                  class="input py-3 pl-12 text-lg"
-                />
-              </div>
-              <p class="input-hint">
-                {{ t('redeem.redeemCodeHint') }}
-              </p>
+      <div class="card p-6">
+        <h3 class="mb-4 text-base font-bold text-gray-900 dark:text-white">{{ t('redeem.redeemCodeLabel') }}</h3>
+        <form @submit.prevent="handleRedeem" class="space-y-4">
+          <div class="relative">
+            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+              <Icon name="gift" size="md" class="text-gray-400 dark:text-dark-500" />
             </div>
+            <input
+              id="code"
+              v-model="redeemCode"
+              type="text"
+              required
+              :placeholder="t('redeem.redeemCodePlaceholder')"
+              :disabled="submitting"
+              class="input py-3.5 pl-12 text-base"
+            />
+          </div>
+          <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('redeem.redeemCodeHint') }}</p>
 
-            <button
-              type="submit"
-              :disabled="!redeemCode || submitting"
-              class="btn btn-primary w-full py-3"
+          <button
+            type="submit"
+            :disabled="!redeemCode || submitting"
+            class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-primary-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-500/25 transition-all hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
+          >
+            <svg
+              v-if="submitting"
+              class="h-5 w-5 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
             >
-              <svg
-                v-if="submitting"
-                class="-ml-1 mr-2 h-5 w-5 animate-spin"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                ></circle>
-                <path
-                  class="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
-              <Icon v-else name="checkCircle" size="md" class="mr-2" />
-              {{ submitting ? t('redeem.redeeming') : t('redeem.redeemButton') }}
-            </button>
-          </form>
-        </div>
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <Icon v-else name="checkCircle" size="md" />
+            {{ submitting ? t('redeem.redeeming') : t('redeem.redeemButton') }}
+          </button>
+        </form>
       </div>
 
       <!-- Success Message -->
@@ -84,20 +82,18 @@
           v-if="redeemResult"
           class="card border-emerald-200 bg-emerald-50 dark:border-emerald-800/50 dark:bg-emerald-900/20"
         >
-          <div class="p-6">
-            <div class="flex items-start gap-4">
-              <div
-                class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-100 dark:bg-emerald-900/30"
-              >
+          <div class="p-5">
+            <div class="flex items-start gap-3">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-emerald-100 dark:bg-emerald-900/30">
                 <Icon name="checkCircle" size="md" class="text-emerald-600 dark:text-emerald-400" />
               </div>
               <div class="flex-1">
                 <h3 class="text-sm font-semibold text-emerald-800 dark:text-emerald-300">
                   {{ t('redeem.redeemSuccess') }}
                 </h3>
-                <div class="mt-2 text-sm text-emerald-700 dark:text-emerald-400">
+                <div class="mt-1.5 text-sm text-emerald-700 dark:text-emerald-400">
                   <p>{{ redeemResult.message }}</p>
-                  <div class="mt-3 space-y-1">
+                  <div class="mt-2 space-y-0.5">
                     <p v-if="redeemResult.type === 'balance'" class="font-medium">
                       {{ t('redeem.added') }}: ${{ redeemResult.value.toFixed(2) }}
                     </p>
@@ -109,10 +105,7 @@
                       {{ t('redeem.subscriptionAssigned') }}
                       <span v-if="redeemResult.group_name"> - {{ redeemResult.group_name }}</span>
                       <span v-if="redeemResult.validity_days">
-                        ({{
-                          t('redeem.subscriptionDays', { days: redeemResult.validity_days })
-                        }})</span
-                      >
+                        ({{ t('redeem.subscriptionDays', { days: redeemResult.validity_days }) }})</span>
                     </p>
                     <p v-if="redeemResult.new_balance !== undefined">
                       {{ t('redeem.newBalance') }}:
@@ -120,9 +113,7 @@
                     </p>
                     <p v-if="redeemResult.new_concurrency !== undefined">
                       {{ t('redeem.newConcurrency') }}:
-                      <span class="font-semibold"
-                        >{{ redeemResult.new_concurrency }} {{ t('redeem.requests') }}</span
-                      >
+                      <span class="font-semibold">{{ redeemResult.new_concurrency }} {{ t('redeem.requests') }}</span>
                     </p>
                   </div>
                 </div>
@@ -138,22 +129,16 @@
           v-if="errorMessage"
           class="card border-red-200 bg-red-50 dark:border-red-800/50 dark:bg-red-900/20"
         >
-          <div class="p-6">
-            <div class="flex items-start gap-4">
-              <div
-                class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-red-100 dark:bg-red-900/30"
-              >
-                <Icon
-                  name="exclamationCircle"
-                  size="md"
-                  class="text-red-600 dark:text-red-400"
-                />
+          <div class="p-5">
+            <div class="flex items-start gap-3">
+              <div class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg bg-red-100 dark:bg-red-900/30">
+                <Icon name="exclamationCircle" size="md" class="text-red-600 dark:text-red-400" />
               </div>
               <div class="flex-1">
                 <h3 class="text-sm font-semibold text-red-800 dark:text-red-300">
                   {{ t('redeem.redeemFailed') }}
                 </h3>
-                <p class="mt-2 text-sm text-red-700 dark:text-red-400">
+                <p class="mt-1 text-sm text-red-700 dark:text-red-400">
                   {{ errorMessage }}
                 </p>
               </div>
@@ -163,79 +148,71 @@
       </transition>
 
       <!-- Information Card -->
-      <div
-        class="card border-primary-200 bg-primary-50 dark:border-primary-800/50 dark:bg-primary-900/20"
-      >
-        <div class="p-6">
-          <div class="flex items-start gap-4">
-            <div
-              class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary-100 dark:bg-primary-900/30"
-            >
-              <Icon name="infoCircle" size="md" class="text-primary-600 dark:text-primary-400" />
+      <div class="card p-5">
+        <h3 class="mb-3 text-sm font-bold text-gray-900 dark:text-white">{{ t('redeem.aboutCodes') }}</h3>
+        <div class="space-y-2.5">
+          <div class="flex items-center gap-3">
+            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+              <Icon name="checkCircle" size="sm" class="text-primary-500 dark:text-primary-400" />
             </div>
-            <div class="flex-1">
-              <h3 class="text-sm font-semibold text-primary-800 dark:text-primary-300">
-                {{ t('redeem.aboutCodes') }}
-              </h3>
-              <ul
-                class="mt-2 list-inside list-disc space-y-1 text-sm text-primary-700 dark:text-primary-400"
+            <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule1') }}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+              <Icon name="gift" size="sm" class="text-primary-500 dark:text-primary-400" />
+            </div>
+            <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule2') }}</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+              <Icon name="infoCircle" size="sm" class="text-primary-500 dark:text-primary-400" />
+            </div>
+            <span class="text-sm text-gray-600 dark:text-gray-400">
+              {{ t('redeem.codeRule3') }}
+              <span
+                v-if="contactInfo"
+                class="ml-1 inline-flex items-center rounded-md bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
               >
-                <li>{{ t('redeem.codeRule1') }}</li>
-                <li>{{ t('redeem.codeRule2') }}</li>
-                <li>
-                  {{ t('redeem.codeRule3') }}
-                  <span
-                    v-if="contactInfo"
-                    class="ml-1.5 inline-flex items-center rounded-md bg-primary-200/50 px-2 py-0.5 text-xs font-medium text-primary-800 dark:bg-primary-800/40 dark:text-primary-200"
-                  >
-                    {{ contactInfo }}
-                  </span>
-                </li>
-                <li>{{ t('redeem.codeRule4') }}</li>
-              </ul>
+                {{ contactInfo }}
+              </span>
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+              <Icon name="bolt" size="sm" class="text-primary-500 dark:text-primary-400" />
             </div>
+            <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule4') }}</span>
           </div>
         </div>
       </div>
 
       <!-- Recent Activity -->
-      <div class="card">
-        <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
-          <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+      <div v-if="history.length > 0 || loadingHistory" class="card">
+        <div class="border-b border-gray-100 px-5 py-3.5 dark:border-dark-700">
+          <h2 class="text-sm font-bold text-gray-900 dark:text-white">
             {{ t('redeem.recentActivity') }}
           </h2>
         </div>
-        <div class="p-6">
+        <div class="p-5">
           <!-- Loading State -->
-          <div v-if="loadingHistory" class="flex items-center justify-center py-8">
-            <svg class="h-6 w-6 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
+          <div v-if="loadingHistory" class="flex items-center justify-center py-6">
+            <svg class="h-5 w-5 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
           </div>
 
           <!-- History List -->
-          <div v-else-if="history.length > 0" class="space-y-3">
+          <div v-else class="space-y-2.5">
             <div
               v-for="item in history"
               :key="item.id"
-              class="flex items-center justify-between rounded-xl bg-gray-50 p-4 dark:bg-dark-800"
+              class="flex items-center justify-between rounded-xl bg-gray-50 px-4 py-3 dark:bg-dark-800"
             >
-              <div class="flex items-center gap-4">
+              <div class="flex items-center gap-3">
                 <div
                   :class="[
-                    'flex h-10 w-10 items-center justify-center rounded-xl',
+                    'flex h-9 w-9 items-center justify-center rounded-lg',
                     isBalanceType(item.type)
                       ? item.value >= 0
                         ? 'bg-emerald-100 dark:bg-emerald-900/30'
@@ -247,41 +224,30 @@
                           : 'bg-orange-100 dark:bg-orange-900/30'
                   ]"
                 >
-                  <!-- 余额类型图标 -->
                   <Icon
                     v-if="isBalanceType(item.type)"
                     name="dollar"
-                    size="md"
-                    :class="
-                      item.value >= 0
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-red-600 dark:text-red-400'
-                    "
+                    size="sm"
+                    :class="item.value >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'"
                   />
-                  <!-- 订阅类型图标 -->
                   <Icon
                     v-else-if="isSubscriptionType(item.type)"
                     name="badge"
-                    size="md"
+                    size="sm"
                     class="text-purple-600 dark:text-purple-400"
                   />
-                  <!-- 并发类型图标 -->
                   <Icon
                     v-else
                     name="bolt"
-                    size="md"
-                    :class="
-                      item.value >= 0
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-orange-600 dark:text-orange-400'
-                    "
+                    size="sm"
+                    :class="item.value >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400'"
                   />
                 </div>
                 <div>
                   <p class="text-sm font-medium text-gray-900 dark:text-white">
                     {{ getHistoryItemTitle(item) }}
                   </p>
-                  <p class="text-xs text-gray-500 dark:text-dark-400">
+                  <p class="text-xs text-gray-400 dark:text-dark-500">
                     {{ formatDateTime(item.used_at) }}
                   </p>
                 </div>
@@ -312,28 +278,15 @@
                 <p v-else class="text-xs text-gray-400 dark:text-dark-500">
                   {{ t('redeem.adminAdjustment') }}
                 </p>
-                <!-- Display notes for admin adjustments -->
                 <p
                   v-if="item.notes"
-                  class="mt-1 text-xs text-gray-500 dark:text-dark-400 italic max-w-[200px] truncate"
+                  class="mt-0.5 text-xs text-gray-500 dark:text-dark-400 italic max-w-[200px] truncate"
                   :title="item.notes"
                 >
                   {{ item.notes }}
                 </p>
               </div>
             </div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-else class="empty-state py-8">
-            <div
-              class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-800"
-            >
-              <Icon name="clock" size="xl" class="text-gray-400 dark:text-dark-500" />
-            </div>
-            <p class="text-sm text-gray-500 dark:text-dark-400">
-              {{ t('redeem.historyWillAppear') }}
-            </p>
           </div>
         </div>
       </div>
