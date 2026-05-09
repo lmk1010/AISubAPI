@@ -350,7 +350,6 @@ interface ChannelCostResult {
 }
 
 const CACHE_KEY = 'upstream-cost-cache'
-const CACHE_TTL = 10 * 60 * 1000 // 10 minutes
 
 const costResults = reactive<Record<number, ChannelCostResult>>({})
 const fetchingChannels = reactive<Record<number, boolean>>({})
@@ -361,9 +360,8 @@ function loadCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return
-    const { ts, data, range } = JSON.parse(raw)
-    if (Date.now() - ts > CACHE_TTL) return
-    if (range !== dateRange.value) return
+    const { data } = JSON.parse(raw)
+    if (!data) return
     for (const [k, v] of Object.entries(data)) {
       costResults[Number(k)] = v as ChannelCostResult
     }
@@ -523,10 +521,8 @@ function formatTime(ts: number): string {
 onMounted(async () => {
   loadCache()
   await loadAccounts()
-  // Auto-fetch for all configured accounts if cache is empty or stale
   const configured = accounts.value.filter(acc => !!getUpstreamCfg(acc))
-  const hasCachedData = configured.some(acc => !!costResults[acc.id])
-  if (configured.length > 0 && !hasCachedData) {
+  if (configured.length > 0) {
     fetchAllChannelCosts()
   }
 })
