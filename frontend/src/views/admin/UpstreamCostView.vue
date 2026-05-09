@@ -74,7 +74,7 @@
           <template #cell-actions="{ row }">
             <div class="flex items-center gap-1">
               <button @click="openConfigDialog(row._channel)" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400">
-                <Icon name="settings" size="sm" />
+                <Icon name="cog" size="sm" />
                 <span class="text-[10px]">{{ t('admin.upstreamCost.configure') }}</span>
               </button>
               <button @click="fetchSingleChannelCost(row.id)" :disabled="row._fetching || !row._cfg" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 disabled:opacity-30 dark:hover:bg-dark-700 dark:hover:text-primary-400">
@@ -232,7 +232,7 @@ import TablePageLayout from '@/components/layout/TablePageLayout.vue'
 import DataTable from '@/components/common/DataTable.vue'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
-import Icon from '@/components/common/Icon.vue'
+import Icon from '@/components/icons/Icon.vue'
 import { adminAPI } from '@/api/admin'
 import { upstreamCostAPI } from '@/api/upstream-cost'
 import type { UpstreamProvider, UpstreamUserInfo, UpstreamStat, UpstreamLogItem } from '@/api/upstream-cost'
