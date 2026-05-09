@@ -10,33 +10,33 @@
     <!-- Left accent strip -->
     <div :class="['absolute left-0 top-0 bottom-0 w-1 rounded-l-xl', accentClass]" />
 
-    <div class="relative flex flex-1 flex-col px-4 py-3">
+    <div class="relative flex flex-1 flex-col px-4 pt-3 pb-3.5">
       <!-- Badge + Name -->
-      <div class="mb-2">
+      <div class="mb-1.5">
         <span :class="['inline-block rounded-md px-2 py-0.5 text-[11px] font-semibold', badgeLightClass]">
           {{ pLabel }}
         </span>
-        <h3 class="mt-1 truncate text-base font-bold text-gray-900 dark:text-white">{{ plan.name }}</h3>
-        <p v-if="plan.description" class="mt-0.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400 line-clamp-2">
+        <h3 class="mt-1 truncate text-sm font-bold text-gray-900 dark:text-white">{{ plan.name }}</h3>
+        <p v-if="plan.description" class="mt-0.5 text-[11px] leading-tight text-gray-500 dark:text-gray-400 line-clamp-1">
           {{ plan.description }}
         </p>
       </div>
 
-      <!-- Price section -->
+      <!-- Price -->
       <div class="mb-2">
-        <div class="flex items-baseline gap-1">
+        <div class="flex items-baseline gap-0.5">
           <span :class="['text-xs font-medium', textClass]">¥</span>
-          <span :class="['text-2xl font-extrabold tracking-tight', textClass]">{{ plan.price }}</span>
-          <span class="text-xs text-gray-400 dark:text-gray-500">/ {{ validitySuffix }}</span>
+          <span :class="['text-xl font-extrabold tracking-tight', textClass]">{{ plan.price }}</span>
+          <span class="text-[11px] text-gray-400 dark:text-gray-500">/ {{ validitySuffix }}</span>
         </div>
-        <div v-if="plan.original_price" class="mt-0.5 flex items-center gap-2">
-          <span class="text-xs text-gray-400 line-through dark:text-gray-500">¥{{ plan.original_price }}</span>
+        <div v-if="plan.original_price" class="flex items-center gap-1.5">
+          <span class="text-[11px] text-gray-400 line-through dark:text-gray-500">¥{{ plan.original_price }}</span>
           <span :class="['rounded-full px-1.5 py-0.5 text-[10px] font-bold', discountClass]">{{ discountText }}</span>
         </div>
       </div>
 
-      <!-- Quota grid -->
-      <div class="mb-2 space-y-1">
+      <!-- Unified info list: quota + features -->
+      <div class="mb-2.5 space-y-0.5 border-t border-gray-100 pt-2 dark:border-dark-700">
         <div class="flex items-center justify-between text-[11px]">
           <span class="text-gray-400 dark:text-gray-500">{{ t('payment.planCard.rate') }}</span>
           <span class="font-semibold text-gray-700 dark:text-gray-200">{{ rateDisplay }}</span>
@@ -53,37 +53,18 @@
           <span class="text-gray-400 dark:text-gray-500">{{ t('payment.planCard.monthlyLimit') }}</span>
           <span class="font-semibold text-gray-700 dark:text-gray-200">${{ plan.monthly_limit_usd }}</span>
         </div>
-        <div v-if="plan.daily_limit_usd == null && plan.weekly_limit_usd == null && plan.monthly_limit_usd == null" class="flex items-center justify-between text-[11px]">
-          <span class="text-gray-400 dark:text-gray-500">{{ t('payment.planCard.quota') }}</span>
-          <span class="font-semibold text-gray-700 dark:text-gray-200">{{ t('payment.planCard.unlimited') }}</span>
-        </div>
-        <div v-if="modelScopeLabels.length > 0" class="flex items-center justify-between text-[11px]">
-          <span class="text-gray-400 dark:text-gray-500">{{ t('payment.planCard.models') }}</span>
-          <div class="flex flex-wrap justify-end gap-1">
-            <span v-for="scope in modelScopeLabels" :key="scope"
-              class="rounded-full bg-gray-100 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:bg-dark-600 dark:text-gray-300">
-              {{ scope }}
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Features list -->
-      <div v-if="plan.features.length > 0" class="mb-2 space-y-1">
-        <div v-for="feature in plan.features" :key="feature" class="flex items-start gap-1.5">
-          <svg :class="['mt-0.5 h-3 w-3 flex-shrink-0', iconClass]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
+        <div v-for="feature in plan.features" :key="feature" class="flex items-center gap-1.5">
+          <svg :class="['h-3 w-3 flex-shrink-0', iconClass]" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
           </svg>
-          <span class="text-[11px] leading-snug text-gray-600 dark:text-gray-300">{{ feature }}</span>
+          <span class="text-[11px] text-gray-600 dark:text-gray-300">{{ feature }}</span>
         </div>
       </div>
-
-      <div class="flex-1" />
 
       <!-- Subscribe Button -->
       <button
         type="button"
-        :class="['w-full rounded-lg py-2 text-xs font-bold tracking-wide transition-all active:scale-[0.97]', btnClass]"
+        :class="['mt-auto w-full rounded-lg py-2 text-xs font-bold tracking-wide transition-all active:scale-[0.97]', btnClass]"
         @click="emit('select', plan)"
       >
         {{ isRenewal ? t('payment.renewNow') : t('payment.subscribeNow') }}
