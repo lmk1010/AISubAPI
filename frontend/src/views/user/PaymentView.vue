@@ -176,9 +176,22 @@
                 <Icon name="gift" size="xl" class="mx-auto mb-3 text-gray-300 dark:text-dark-600" />
                 <p class="text-gray-500 dark:text-gray-400">{{ t('payment.noPlans') }}</p>
               </div>
-              <div v-else :class="planGridClass">
-                <SubscriptionPlanCard v-for="plan in checkout.plans" :key="plan.id" :plan="plan" :active-subscriptions="activeSubscriptions" @select="selectPlan" />
-              </div>
+              <template v-else>
+                <!-- Platform filter tabs (show only when multiple platforms exist) -->
+                <div v-if="availablePlatforms.length > 1" class="flex gap-2 flex-wrap">
+                  <button
+                    v-for="p in availablePlatforms" :key="p.key"
+                    class="rounded-lg px-4 py-1.5 text-sm font-medium transition-all border"
+                    :class="activePlatformTab === p.key
+                      ? 'bg-primary-500 text-white border-primary-500'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-primary-400 hover:text-primary-500 dark:bg-dark-800 dark:text-gray-300 dark:border-dark-600'"
+                    @click="activePlatformTab = p.key"
+                  >{{ p.label }}</button>
+                </div>
+                <div :class="planGridClass">
+                  <SubscriptionPlanCard v-for="plan in filteredPlans" :key="plan.id" :plan="plan" :active-subscriptions="activeSubscriptions" @select="selectPlan" />
+                </div>
+              </template>
               <!-- Active subscriptions (compact, below plan list) -->
               <div v-if="activeSubscriptions.length > 0">
                 <p class="mb-2 text-xs font-medium text-gray-400 dark:text-gray-500">{{ t('payment.activeSubscription') }}</p>
@@ -490,9 +503,23 @@ const balanceRechargeMultiplier = computed(() => {
 })
 const creditedAmount = computed(() => Math.round((validAmount.value * balanceRechargeMultiplier.value) * 100) / 100)
 
+// Platform sub-tabs for subscription plans
+const activePlatformTab = ref<string>('all')
+
+const availablePlatforms = computed(() => {
+  const platforms = [...new Set(checkout.value.plans.map(p => p.group_platform || ''))].filter(Boolean)
+  if (platforms.length <= 1) return platforms.map(p => ({ key: p, label: platformLabel(p) }))
+  return [{ key: 'all', label: t('common.all') || '全部' }, ...platforms.map(p => ({ key: p, label: platformLabel(p) }))]
+})
+
+const filteredPlans = computed(() => {
+  if (activePlatformTab.value === 'all' || availablePlatforms.value.length <= 1) return checkout.value.plans
+  return checkout.value.plans.filter(p => (p.group_platform || '') === activePlatformTab.value)
+})
+
 // Adaptive grid: center single card, 2-col for 2 plans, 3-col for 3+
 const planGridClass = computed(() => {
-  const n = checkout.value.plans.length
+  const n = filteredPlans.value.length
   if (n <= 2) return 'grid grid-cols-1 gap-4 sm:grid-cols-2'
   return 'grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'
 })
