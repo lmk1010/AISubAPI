@@ -35,7 +35,7 @@
 
           <template #cell-provider="{ row }">
             <span v-if="row._cfg" class="inline-flex rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">{{ row._cfg.type === 'newapi' ? 'New-API' : 'Sub2API' }}</span>
-            <button v-else @click="openConfigDialog(row._channel)" class="text-[10px] font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ t('admin.upstreamCost.configure') }}</button>
+            <button v-else @click="openConfigDialog(row._account)" class="text-[10px] font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400">{{ t('admin.upstreamCost.configure') }}</button>
           </template>
 
           <template #cell-upstream_cost="{ row }">
@@ -73,7 +73,7 @@
 
           <template #cell-actions="{ row }">
             <div class="flex items-center gap-1">
-              <button @click="openConfigDialog(row._channel)" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400">
+              <button @click="openConfigDialog(row._account)" class="flex flex-col items-center gap-0.5 rounded-lg p-1.5 text-gray-500 transition-colors hover:bg-gray-100 hover:text-primary-600 dark:hover:bg-dark-700 dark:hover:text-primary-400">
                 <Icon name="cog" size="sm" />
                 <span class="text-[10px]">{{ t('admin.upstreamCost.configure') }}</span>
               </button>
@@ -96,7 +96,7 @@
     </TablePageLayout>
 
     <!-- ====== Config Dialog ====== -->
-    <BaseDialog :show="showConfigDialog" :title="t('admin.upstreamCost.configure') + ' — ' + (configChannel?.name || '')" @close="showConfigDialog = false">
+    <BaseDialog :show="showConfigDialog" :title="t('admin.upstreamCost.configure') + ' — ' + (configAccount?.name || '')" @close="showConfigDialog = false">
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-4">
           <div>
@@ -236,8 +236,7 @@ import Icon from '@/components/icons/Icon.vue'
 import { adminAPI } from '@/api/admin'
 import { upstreamCostAPI } from '@/api/upstream-cost'
 import type { UpstreamProvider, UpstreamUserInfo, UpstreamStat, UpstreamLogItem } from '@/api/upstream-cost'
-import type { Channel } from '@/api/admin/channels'
-import type { TrendDataPoint } from '@/types'
+import type { Account, TrendDataPoint } from '@/types'
 import { useAppStore } from '@/stores/app'
 
 const { t } = useI18n()
@@ -270,23 +269,23 @@ function onDateRangeChange() {
   if (Object.keys(costResults).length > 0) fetchAllChannelCosts()
 }
 
-// --- Channels ---
-const channels = ref<Channel[]>([])
+// --- Accounts ---
+const accounts = ref<Account[]>([])
 const loadingChannels = ref(false)
 
-async function loadChannels() {
+async function loadAccounts() {
   loadingChannels.value = true
   try {
-    const resp = await adminAPI.channels.list(1, 100)
-    channels.value = resp.items || []
+    const resp = await adminAPI.accounts.list(1, 200)
+    accounts.value = resp.items || []
   } catch (err: any) {
-    console.error('Failed to load channels:', err)
+    console.error('Failed to load accounts:', err)
   } finally {
     loadingChannels.value = false
   }
 }
 
-// --- Upstream config from channel.features_config ---
+// --- Upstream config from account.extra.upstream_provider ---
 interface UpstreamCfg {
   type: 'newapi' | 'sub2api'
   base_url: string
@@ -294,8 +293,8 @@ interface UpstreamCfg {
   user_id: number
 }
 
-function getUpstreamCfg(ch: Channel): UpstreamCfg | null {
-  const cfg = (ch.features_config as Record<string, unknown> | undefined)?.upstream_provider as UpstreamCfg | undefined
+function getUpstreamCfg(acc: Account): UpstreamCfg | null {
+  const cfg = (acc.extra as Record<string, unknown> | undefined)?.upstream_provider as UpstreamCfg | undefined
   if (!cfg || !cfg.base_url || !cfg.access_token || !cfg.user_id) return null
   return cfg
 }
@@ -306,13 +305,13 @@ function cfgToProvider(cfg: UpstreamCfg): UpstreamProvider {
 
 // --- Config Dialog ---
 const showConfigDialog = ref(false)
-const configChannel = ref<Channel | null>(null)
+const configAccount = ref<Account | null>(null)
 const configForm = reactive<UpstreamCfg>({ type: 'newapi', base_url: '', access_token: '', user_id: 0 })
 const savingConfig = ref(false)
 
-function openConfigDialog(ch: Channel) {
-  configChannel.value = ch
-  const existing = getUpstreamCfg(ch)
+function openConfigDialog(acc: Account) {
+  configAccount.value = acc
+  const existing = getUpstreamCfg(acc)
   configForm.type = existing?.type || 'newapi'
   configForm.base_url = existing?.base_url || ''
   configForm.access_token = existing?.access_token || ''
@@ -321,17 +320,17 @@ function openConfigDialog(ch: Channel) {
 }
 
 async function saveConfig() {
-  if (!configChannel.value) return
+  if (!configAccount.value) return
   savingConfig.value = true
   try {
-    const ch = configChannel.value
-    const existingFeatures = (ch.features_config || {}) as Record<string, unknown>
-    await adminAPI.channels.update(ch.id, {
-      features_config: { ...existingFeatures, upstream_provider: { ...configForm } }
+    const acc = configAccount.value
+    const existingExtra = (acc.extra || {}) as Record<string, unknown>
+    await adminAPI.accounts.update(acc.id, {
+      extra: { ...existingExtra, upstream_provider: { ...configForm } }
     })
     appStore.showSuccess(t('admin.upstreamCost.configSaved'))
     showConfigDialog.value = false
-    await loadChannels()
+    await loadAccounts()
   } catch (err: any) {
     appStore.showError(err?.message || 'Failed to save config')
   } finally {
@@ -365,17 +364,17 @@ const globalSummary = computed(() => {
   return { hasData: true, upstreamCost, internalRevenue, profitLoss, marginPct }
 })
 
-async function fetchSingleChannelCost(channelId: number) {
-  const ch = channels.value.find(c => c.id === channelId)
-  if (!ch) return
-  const cfg = getUpstreamCfg(ch)
+async function fetchSingleChannelCost(accountId: number) {
+  const acc = accounts.value.find(a => a.id === accountId)
+  if (!acc) return
+  const cfg = getUpstreamCfg(acc)
   if (!cfg) return
-  fetchingChannels[channelId] = true
-  delete fetchErrors[channelId]
+  fetchingChannels[accountId] = true
+  delete fetchErrors[accountId]
   try {
     const prov = cfgToProvider(cfg)
     const dr = getDateRange()
-    const groupIds = ch.group_ids || []
+    const groupIds = acc.group_ids || []
     const [ui, st, ...trendResults] = await Promise.all([
       upstreamCostAPI.getUserInfo(prov),
       upstreamCostAPI.getStats(prov),
@@ -400,18 +399,18 @@ async function fetchSingleChannelCost(channelId: number) {
     const internalRevenue = mergedTrend.reduce((s, pt) => s + pt.actual_cost, 0)
     const profitLoss = internalRevenue - upstreamCost
     const marginPct = upstreamCost > 0 ? (profitLoss / upstreamCost) * 100 : 0
-    costResults[channelId] = { userInfo: ui, stat: st, upstreamCost, internalRevenue, profitLoss, marginPct, trend: mergedTrend }
+    costResults[accountId] = { userInfo: ui, stat: st, upstreamCost, internalRevenue, profitLoss, marginPct, trend: mergedTrend }
   } catch (err: any) {
-    fetchErrors[channelId] = err?.message || 'Failed'
+    fetchErrors[accountId] = err?.message || 'Failed'
   } finally {
-    fetchingChannels[channelId] = false
+    fetchingChannels[accountId] = false
   }
 }
 
 async function fetchAllChannelCosts() {
   batchFetching.value = true
-  const configured = channels.value.filter(ch => !!getUpstreamCfg(ch))
-  await Promise.allSettled(configured.map(ch => fetchSingleChannelCost(ch.id)))
+  const configured = accounts.value.filter(acc => !!getUpstreamCfg(acc))
+  await Promise.allSettled(configured.map(acc => fetchSingleChannelCost(acc.id)))
   batchFetching.value = false
   if (configured.length === 0) appStore.showError(t('admin.upstreamCost.noConfiguredChannels'))
 }
@@ -429,22 +428,22 @@ const columns = computed(() => [
 ])
 
 const tableData = computed(() =>
-  channels.value.map(ch => ({
-    id: ch.id,
-    name: ch.name,
-    status: ch.status,
-    _channel: ch,
-    _cfg: getUpstreamCfg(ch),
-    _result: costResults[ch.id] || null,
-    _fetching: !!fetchingChannels[ch.id],
-    _error: fetchErrors[ch.id] || null,
+  accounts.value.map(acc => ({
+    id: acc.id,
+    name: acc.name,
+    status: acc.status,
+    _account: acc,
+    _cfg: getUpstreamCfg(acc),
+    _result: costResults[acc.id] || null,
+    _fetching: !!fetchingChannels[acc.id],
+    _error: fetchErrors[acc.id] || null,
   }))
 )
 
 // --- Detail Dialog ---
 const showDetailDialog = ref(false)
 const detailChannelId = ref<number | null>(null)
-const detailChannel = computed(() => channels.value.find(ch => ch.id === detailChannelId.value))
+const detailChannel = computed(() => accounts.value.find(a => a.id === detailChannelId.value))
 const detailResult = computed(() => detailChannelId.value !== null ? costResults[detailChannelId.value] : null)
 const detailLogs = reactive<{ items: UpstreamLogItem[]; total: number; page: number }>({ items: [], total: 0, page: 0 })
 const detailLogsLoading = ref(false)
@@ -471,8 +470,8 @@ async function openDetailDialog(channelId: number) {
   showDetailDialog.value = true
   detailLogsLoading.value = true
   try {
-    const ch = channels.value.find(c => c.id === channelId)
-    const cfg = ch ? getUpstreamCfg(ch) : null
+    const acc = accounts.value.find(a => a.id === channelId)
+    const cfg = acc ? getUpstreamCfg(acc) : null
     if (!cfg) return
     const lg = await upstreamCostAPI.getLogs(cfgToProvider(cfg), { page: 0, page_size: 50 })
     detailLogs.items = lg.items || []; detailLogs.total = lg.total
@@ -482,8 +481,8 @@ async function openDetailDialog(channelId: number) {
 
 async function loadMoreDetailLogs() {
   if (detailChannelId.value === null) return
-  const ch = channels.value.find(c => c.id === detailChannelId.value)
-  const cfg = ch ? getUpstreamCfg(ch) : null
+  const acc = accounts.value.find(a => a.id === detailChannelId.value)
+  const cfg = acc ? getUpstreamCfg(acc) : null
   if (!cfg) return
   detailLogsLoading.value = true; detailLogs.page++
   try {
@@ -498,5 +497,5 @@ function formatTime(ts: number): string {
   return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
 }
 
-onMounted(() => loadChannels())
+onMounted(() => loadAccounts())
 </script>
