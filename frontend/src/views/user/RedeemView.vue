@@ -1,6 +1,6 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-2xl space-y-6">
+    <div class="mx-auto max-w-4xl space-y-6">
       <!-- Stat Cards Row -->
       <div class="grid grid-cols-3 gap-4">
         <!-- Balance -->
@@ -36,44 +36,86 @@
         </div>
       </div>
 
-      <!-- Redeem Form -->
-      <div class="card p-6">
-        <h3 class="mb-4 text-base font-bold text-gray-900 dark:text-white">{{ t('redeem.redeemCodeLabel') }}</h3>
-        <form @submit.prevent="handleRedeem" class="space-y-4">
-          <div class="relative">
-            <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-              <Icon name="gift" size="md" class="text-gray-400 dark:text-dark-500" />
+      <!-- Two-column: Form + Info -->
+      <div class="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <!-- Redeem Form (left, wider) -->
+        <div class="card p-6 lg:col-span-3">
+          <h3 class="mb-4 text-base font-bold text-gray-900 dark:text-white">{{ t('redeem.redeemCodeLabel') }}</h3>
+          <form @submit.prevent="handleRedeem" class="space-y-4">
+            <div class="relative">
+              <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <Icon name="gift" size="md" class="text-gray-400 dark:text-dark-500" />
+              </div>
+              <input
+                id="code"
+                v-model="redeemCode"
+                type="text"
+                required
+                :placeholder="t('redeem.redeemCodePlaceholder')"
+                :disabled="submitting"
+                class="input py-3.5 pl-12 text-base"
+              />
             </div>
-            <input
-              id="code"
-              v-model="redeemCode"
-              type="text"
-              required
-              :placeholder="t('redeem.redeemCodePlaceholder')"
-              :disabled="submitting"
-              class="input py-3.5 pl-12 text-base"
-            />
-          </div>
-          <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('redeem.redeemCodeHint') }}</p>
+            <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('redeem.redeemCodeHint') }}</p>
 
-          <button
-            type="submit"
-            :disabled="!redeemCode || submitting"
-            class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-primary-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-500/25 transition-all hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
-          >
-            <svg
-              v-if="submitting"
-              class="h-5 w-5 animate-spin"
-              fill="none"
-              viewBox="0 0 24 24"
+            <button
+              type="submit"
+              :disabled="!redeemCode || submitting"
+              class="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-500 to-primary-500 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary-500/25 transition-all hover:shadow-xl hover:shadow-primary-500/30 active:scale-[0.98] disabled:opacity-50 disabled:shadow-none"
             >
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <Icon v-else name="checkCircle" size="md" />
-            {{ submitting ? t('redeem.redeeming') : t('redeem.redeemButton') }}
-          </button>
-        </form>
+              <svg
+                v-if="submitting"
+                class="h-5 w-5 animate-spin"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              <Icon v-else name="checkCircle" size="md" />
+              {{ submitting ? t('redeem.redeeming') : t('redeem.redeemButton') }}
+            </button>
+          </form>
+        </div>
+
+        <!-- Information Card (right, narrower) -->
+        <div class="card p-6 lg:col-span-2">
+          <h3 class="mb-4 text-base font-bold text-gray-900 dark:text-white">{{ t('redeem.aboutCodes') }}</h3>
+          <div class="space-y-4">
+            <div class="flex items-start gap-3">
+              <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+                <Icon name="checkCircle" size="sm" class="text-primary-500 dark:text-primary-400" />
+              </div>
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule1') }}</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+                <Icon name="gift" size="sm" class="text-primary-500 dark:text-primary-400" />
+              </div>
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule2') }}</span>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+                <Icon name="infoCircle" size="sm" class="text-primary-500 dark:text-primary-400" />
+              </div>
+              <span class="text-sm text-gray-600 dark:text-gray-400">
+                {{ t('redeem.codeRule3') }}
+                <span
+                  v-if="contactInfo"
+                  class="ml-1 inline-flex items-center rounded-md bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
+                >
+                  {{ contactInfo }}
+                </span>
+              </span>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
+                <Icon name="bolt" size="sm" class="text-primary-500 dark:text-primary-400" />
+              </div>
+              <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule4') }}</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Success Message -->
@@ -146,45 +188,6 @@
           </div>
         </div>
       </transition>
-
-      <!-- Information Card -->
-      <div class="card p-5">
-        <h3 class="mb-3 text-sm font-bold text-gray-900 dark:text-white">{{ t('redeem.aboutCodes') }}</h3>
-        <div class="space-y-2.5">
-          <div class="flex items-center gap-3">
-            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
-              <Icon name="checkCircle" size="sm" class="text-primary-500 dark:text-primary-400" />
-            </div>
-            <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule1') }}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
-              <Icon name="gift" size="sm" class="text-primary-500 dark:text-primary-400" />
-            </div>
-            <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule2') }}</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
-              <Icon name="infoCircle" size="sm" class="text-primary-500 dark:text-primary-400" />
-            </div>
-            <span class="text-sm text-gray-600 dark:text-gray-400">
-              {{ t('redeem.codeRule3') }}
-              <span
-                v-if="contactInfo"
-                class="ml-1 inline-flex items-center rounded-md bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700 dark:bg-primary-900/30 dark:text-primary-300"
-              >
-                {{ contactInfo }}
-              </span>
-            </span>
-          </div>
-          <div class="flex items-center gap-3">
-            <div class="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg bg-primary-100 dark:bg-primary-900/30">
-              <Icon name="bolt" size="sm" class="text-primary-500 dark:text-primary-400" />
-            </div>
-            <span class="text-sm text-gray-600 dark:text-gray-400">{{ t('redeem.codeRule4') }}</span>
-          </div>
-        </div>
-      </div>
 
       <!-- Recent Activity -->
       <div v-if="history.length > 0 || loadingHistory" class="card">
