@@ -39,7 +39,6 @@
           <a v-if="docUrl" :href="docUrl" target="_blank" rel="noopener noreferrer">{{ t('home.nav.docs') }}</a>
           <router-link v-else to="/docs" :class="{ active: $route.path.startsWith('/docs') }">{{ t('home.nav.docs') }}</router-link>
         </li>
-        <li><a :href="githubUrl" target="_blank" rel="noopener noreferrer">{{ t('home.nav.community') }}</a></li>
       </ul>
 
       <!-- Right actions -->
@@ -88,7 +87,6 @@ const siteName = computed(() => appStore.cachedPublicSettings?.site_name || appS
 const siteLogo = computed(() => appStore.cachedPublicSettings?.site_logo || appStore.siteLogo || '')
 const docUrl = computed(() => appStore.cachedPublicSettings?.doc_url || appStore.docUrl || '')
 
-const githubUrl = 'https://github.com/Wei-Shaw/sub2api'
 
 const isAuthenticated = computed(() => authStore.isAuthenticated)
 const isAdmin = computed(() => authStore.isAdmin)

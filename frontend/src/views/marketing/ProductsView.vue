@@ -192,11 +192,13 @@ onMounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #eef2ff;
+  background: #f1f3fb url('/light-bg.png') no-repeat center center / cover;
   color: #0f172a;
 }
 
 .products-main {
+  position: relative;
+  z-index: 1;
   flex: 1;
   max-width: 1280px;
   margin: 0 auto;
@@ -513,7 +515,7 @@ onMounted(() => {
 
 <style>
 html.dark .products-shell {
-  background: #0a0f1a;
+  background: #0a0f1a url('/dark-dashboard-bg.png') no-repeat center center / cover;
   color: #e2e8f0;
 }
 html.dark .page-title {

@@ -62,11 +62,10 @@ defineExpose({ replayTour })
   position: fixed;
   inset: 0;
   pointer-events: none;
-  background-image: url('/dashboard-bg.png?v=3');
+  background-image: url('/light-bg.png');
   background-repeat: no-repeat;
-  background-position: center top;
+  background-position: center center;
   background-size: cover;
-  background-attachment: fixed;
   z-index: 0;
 }
 .app-shell__main {
@@ -80,8 +79,6 @@ html.dark .app-shell {
   background-color: #0a0f1a;
 }
 html.dark .app-shell__bg {
-  opacity: 0.28;
-  filter: hue-rotate(10deg) saturate(0.85);
-  mix-blend-mode: screen;
+  background-image: url('/dark-dashboard-bg.png');
 }
 </style>

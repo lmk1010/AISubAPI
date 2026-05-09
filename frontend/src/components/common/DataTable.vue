@@ -69,7 +69,7 @@
       'is-scrollable': isScrollable
     }"
   >
-    <table class="w-full min-w-max divide-y divide-slate-100/80 dark:divide-dark-700">
+    <table class="w-full min-w-max divide-y divide-slate-100/40 dark:divide-dark-700/40">
       <thead class="table-header">
         <tr>
           <th
@@ -77,7 +77,7 @@
             :key="column.key"
             scope="col"
             :class="[
-              'sticky-header-cell py-2 text-left text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-dark-400',
+              'sticky-header-cell py-2 text-left text-[11px] font-medium uppercase tracking-wider text-slate-500/80 dark:text-dark-400',
               getAdaptivePaddingClass(),
               { 'cursor-pointer hover:bg-violet-50/60 dark:hover:bg-dark-700': column.sortable },
               getStickyColumnClass(column, index),
@@ -118,7 +118,7 @@
           </th>
         </tr>
       </thead>
-      <tbody class="table-body divide-y divide-slate-100/80 dark:divide-dark-700">
+      <tbody class="table-body divide-y divide-slate-100/40 dark:divide-dark-700/40">
         <!-- Loading skeleton -->
         <tr v-if="loading" v-for="i in 5" :key="i">
           <td v-for="column in columns" :key="column.key" :class="['whitespace-nowrap py-2', getAdaptivePaddingClass()]">
@@ -162,13 +162,13 @@
             :data-row-id="resolveRowKey(sortedData[virtualRow.index], virtualRow.index)"
             :data-index="virtualRow.index"
             :ref="measureElement"
-            class="transition-colors duration-150 hover:bg-violet-50/40 dark:hover:bg-dark-800/50"
+            class="transition-colors duration-100 hover:bg-violet-50/30 dark:hover:bg-white/[0.03]"
           >
             <td
               v-for="(column, colIndex) in columns"
               :key="column.key"
               :class="[
-                'whitespace-nowrap py-2.5 text-sm text-gray-900 dark:text-gray-100',
+                'whitespace-nowrap py-1.5 text-xs text-gray-900 dark:text-gray-100',
                 getAdaptivePaddingClass(),
                 getStickyColumnClass(column, colIndex),
                 column.class
@@ -724,31 +724,19 @@ defineExpose({
     0 1px 2px rgba(0, 0, 0, 0.25);
 }
 
-/* Desktop table wrapper — frosted-glass card with violet-tinted shadow */
+/* Desktop table wrapper — transparent, glass provided by parent container */
 .table-wrapper {
-  --select-col-width: 52px; /* 勾选列宽度：px-6 (24px*2) + checkbox (16px) */
+  --select-col-width: 52px;
   position: relative;
   overflow-x: auto;
   overflow-y: auto;
   flex: 1;
   min-height: 0;
   isolation: isolate;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
-  border-radius: 12px;
-  box-shadow:
-    0 4px 24px rgba(124, 58, 237, 0.06),
-    0 1px 2px rgba(15, 23, 42, 0.04);
-}
-
-:global(html.dark) .table-wrapper {
-  background: rgba(15, 23, 42, 0.7);
-  border-color: rgba(71, 85, 105, 0.5);
-  box-shadow:
-    0 4px 24px rgba(0, 0, 0, 0.35),
-    0 1px 2px rgba(0, 0, 0, 0.25);
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* Sticky header — soft violet-tinted lavender to match dashboard surfaces */
@@ -756,12 +744,12 @@ defineExpose({
   position: sticky;
   top: 0;
   z-index: 200;
-  background-color: rgba(245, 243, 255, 0.85);
-  backdrop-filter: blur(8px);
+  background-color: rgba(245, 243, 255, 0.6);
+  backdrop-filter: blur(12px);
 }
 
 .dark .table-wrapper .table-header {
-  background-color: rgba(30, 41, 59, 0.85);
+  background-color: rgba(30, 41, 59, 0.65);
 }
 
 /* 表体保持在表头下方 */
@@ -774,13 +762,13 @@ defineExpose({
 .sticky-header-cell {
   position: sticky;
   top: 0;
-  z-index: 210; /* 必须高于所有表体内容 */
-  background-color: rgba(245, 243, 255, 0.85);
-  backdrop-filter: blur(8px);
+  z-index: 210;
+  background-color: rgba(245, 243, 255, 0.6);
+  backdrop-filter: blur(12px);
 }
 
 .dark .sticky-header-cell {
-  background-color: rgba(30, 41, 59, 0.85);
+  background-color: rgba(30, 41, 59, 0.65);
 }
 
 /* Sticky 列基础样式 */
@@ -816,21 +804,21 @@ defineExpose({
 
 /* 表体 sticky 列背景 — semi-opaque tinted lavender so the frosted card shows through subtly */
 tbody .sticky-col {
-  background-color: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  background-color: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
 }
 
 .dark tbody .sticky-col {
-  background-color: rgba(15, 23, 42, 0.92);
+  background-color: rgba(15, 23, 42, 0.7);
 }
 
 /* hover 状态：固定列同步使用 violet-50/60 */
 tbody tr:hover .sticky-col {
-  background-color: rgba(245, 243, 255, 0.95);
+  background-color: rgba(245, 243, 255, 0.8);
 }
 
 .dark tbody tr:hover .sticky-col {
-  background-color: rgba(30, 41, 59, 0.95);
+  background-color: rgba(30, 41, 59, 0.8);
 }
 
 /* 阴影只在可滚动时显示 */

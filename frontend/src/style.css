@@ -66,10 +66,10 @@
 @layer components {
   /* ============ 按钮样式 — flat solid, no gradient (matches HomeView/Products CTAs) ============ */
   .btn {
-    @apply inline-flex items-center justify-center gap-1.5;
-    @apply rounded-[10px] px-3.5 py-2 text-[13px] font-medium;
+    @apply inline-flex items-center justify-center gap-1;
+    @apply rounded-lg px-3 py-1.5 text-xs font-medium;
     @apply transition-all duration-200 ease-out;
-    @apply focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-2;
+    @apply focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:ring-offset-1;
     @apply disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none;
     @apply hover:-translate-y-px active:translate-y-0;
   }
@@ -138,24 +138,24 @@
   }
 
   .btn-sm {
-    @apply rounded-lg px-2.5 py-1 text-xs;
+    @apply rounded-md px-2 py-0.5 text-[11px];
   }
 
   .btn-md {
-    @apply rounded-[10px] px-3.5 py-2 text-[13px];
+    @apply rounded-lg px-3 py-1.5 text-xs;
   }
 
   .btn-lg {
-    @apply rounded-xl px-5 py-2.5 text-sm;
+    @apply rounded-lg px-4 py-2 text-[13px];
   }
 
   .btn-icon {
-    @apply rounded-[10px] p-2;
+    @apply rounded-lg p-1.5;
   }
 
   /* ============ 输入框样式 ============ */
   .input {
-    @apply w-full rounded-lg px-3 py-2 text-[13px];
+    @apply w-full rounded-lg px-2.5 py-1.5 text-xs;
     @apply bg-white dark:bg-dark-800;
     @apply border border-gray-200 dark:border-dark-600;
     @apply text-gray-900 dark:text-gray-100;
@@ -210,22 +210,22 @@
 
   /* ============ 卡片样式 — frosted glass on the lavender canvas ============ */
   .card {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(18px) saturate(180%);
-    -webkit-backdrop-filter: blur(18px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.55);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
     border-radius: 12px;
     box-shadow:
-      0 4px 24px rgba(124, 58, 237, 0.06),
-      0 1px 2px rgba(15, 23, 42, 0.04);
+      0 2px 16px rgba(124, 58, 237, 0.05),
+      0 1px 2px rgba(15, 23, 42, 0.03);
     @apply transition-all duration-300;
   }
   html.dark .card {
-    background: rgba(15, 23, 42, 0.7);
-    border-color: rgba(71, 85, 105, 0.5);
+    background: rgba(15, 23, 42, 0.5);
+    border-color: rgba(71, 85, 105, 0.35);
     box-shadow:
-      0 4px 24px rgba(0, 0, 0, 0.35),
-      0 1px 2px rgba(0, 0, 0, 0.25);
+      0 2px 16px rgba(0, 0, 0, 0.25),
+      0 1px 2px rgba(0, 0, 0, 0.15);
   }
 
   .card-hover {
@@ -245,29 +245,29 @@
   }
 
   .card-header {
-    @apply border-b border-gray-100 dark:border-dark-700;
-    @apply px-4 py-3;
+    @apply border-b border-gray-100/60 dark:border-dark-700/60;
+    @apply px-3 py-2;
   }
 
   .card-body {
-    @apply p-4;
+    @apply p-3;
   }
 
   .card-footer {
-    @apply border-t border-gray-100 dark:border-dark-700;
-    @apply px-4 py-3;
+    @apply border-t border-gray-100/60 dark:border-dark-700/60;
+    @apply px-3 py-2;
   }
 
   /* ============ 统计卡片 ============ */
   .stat-card {
-    @apply card p-4;
-    @apply flex items-start gap-3;
+    @apply card p-3;
+    @apply flex items-start gap-2.5;
   }
 
   .stat-icon {
-    @apply h-10 w-10 rounded-lg;
+    @apply h-8 w-8 rounded-lg;
     @apply flex items-center justify-center;
-    @apply text-base;
+    @apply text-sm;
   }
 
   .stat-icon-primary {
@@ -287,11 +287,11 @@
   }
 
   .stat-value {
-    @apply text-xl font-bold text-gray-900 dark:text-white truncate;
+    @apply text-lg font-bold text-gray-900 dark:text-white truncate;
   }
 
   .stat-label {
-    @apply text-xs text-gray-500 dark:text-dark-400;
+    @apply text-[11px] text-gray-500 dark:text-dark-400;
   }
 
   .stat-trend {
@@ -309,38 +309,38 @@
   /* ============ 表格样式 — frosted glass wrapper, violet-tinted accents ============ */
   .table-container {
     overflow-x: auto;
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: blur(18px) saturate(180%);
-    -webkit-backdrop-filter: blur(18px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.85);
+    background: rgba(255, 255, 255, 0.48);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.5);
     border-radius: 12px;
     box-shadow:
-      0 4px 24px rgba(124, 58, 237, 0.06),
-      0 1px 2px rgba(15, 23, 42, 0.04);
+      0 2px 16px rgba(124, 58, 237, 0.04),
+      0 1px 2px rgba(15, 23, 42, 0.02);
   }
   html.dark .table-container {
-    background: rgba(15, 23, 42, 0.7);
-    border-color: rgba(71, 85, 105, 0.5);
+    background: rgba(15, 23, 42, 0.45);
+    border-color: rgba(71, 85, 105, 0.3);
     box-shadow:
-      0 4px 24px rgba(0, 0, 0, 0.35),
-      0 1px 2px rgba(0, 0, 0, 0.25);
+      0 2px 16px rgba(0, 0, 0, 0.2),
+      0 1px 2px rgba(0, 0, 0, 0.12);
   }
 
   .table {
-    @apply w-full text-[13px];
+    @apply w-full text-xs;
   }
 
   .table th {
-    @apply px-3 py-2.5 text-left font-medium;
-    @apply text-slate-500 dark:text-dark-300;
-    @apply bg-violet-50/40 dark:bg-dark-800/40;
-    @apply border-b border-slate-200/60 dark:border-dark-700;
+    @apply px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider;
+    @apply text-slate-500/80 dark:text-dark-400;
+    @apply bg-violet-50/20 dark:bg-white/[0.03];
+    @apply border-b border-slate-200/40 dark:border-dark-700/50;
   }
 
   .table td {
-    @apply px-3 py-2.5;
+    @apply px-3 py-1.5;
     @apply text-gray-700 dark:text-gray-300;
-    @apply border-b border-slate-100/80 dark:border-dark-800;
+    @apply border-b border-slate-100/50 dark:border-dark-800/50;
   }
 
   .table tr:last-child td {
@@ -349,13 +349,13 @@
 
   .table tbody tr {
     @apply transition-colors duration-150;
-    @apply hover:bg-violet-50/40 dark:hover:bg-dark-800/30;
+    @apply hover:bg-violet-50/30 dark:hover:bg-white/[0.03];
   }
 
   /* ============ 徽章样式 ============ */
   .badge {
-    @apply inline-flex items-center gap-1;
-    @apply rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center gap-0.5;
+    @apply rounded-full px-2 py-px text-[11px] font-medium;
   }
 
   .badge-primary {
@@ -394,7 +394,7 @@
   }
 
   .dropdown-item {
-    @apply px-4 py-2 text-sm;
+    @apply px-3 py-1.5 text-xs;
     @apply text-gray-700 dark:text-gray-300;
     @apply hover:bg-gray-100 dark:hover:bg-dark-700;
     @apply cursor-pointer transition-colors;
@@ -418,22 +418,22 @@
   }
 
   .modal-header {
-    @apply border-b border-gray-200 px-4 py-3 dark:border-dark-700;
+    @apply border-b border-gray-200/60 px-4 py-2.5 dark:border-dark-700/60;
     @apply flex items-center justify-between;
     @apply flex-shrink-0;
   }
 
   .modal-title {
-    @apply text-base font-semibold text-gray-900 dark:text-white;
+    @apply text-sm font-semibold text-gray-900 dark:text-white;
   }
 
   .modal-body {
-    @apply px-4 py-3;
+    @apply px-4 py-2.5;
     @apply flex-1 overflow-y-auto;
   }
 
   .modal-footer {
-    @apply border-t border-gray-200 px-4 py-3 dark:border-dark-700;
+    @apply border-t border-gray-200/60 px-4 py-2.5 dark:border-dark-700/60;
     @apply flex items-center justify-end gap-2;
     @apply flex-shrink-0;
   }
@@ -567,6 +567,8 @@
     @apply h-[80px] px-6;
     @apply flex items-center gap-3;
     border-bottom: none;
+    text-decoration: none;
+    color: inherit;
     transition:
       padding 0.2s ease,
       gap 0.2s ease;

@@ -627,16 +627,16 @@ onMounted(() => {
   display: grid;
   grid-template-columns: minmax(240px, 280px) 1fr;
   gap: 0;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(18px) saturate(180%);
-  -webkit-backdrop-filter: blur(18px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.48);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 12px;
   overflow: hidden;
-  min-height: 240px;
+  min-height: 220px;
   box-shadow:
-    0 4px 24px rgba(124, 58, 237, 0.08),
-    0 1px 2px rgba(15, 23, 42, 0.04);
+    0 2px 16px rgba(124, 58, 237, 0.05),
+    0 1px 2px rgba(15, 23, 42, 0.03);
 }
 
 @media (max-width: 1023px) {
@@ -719,24 +719,29 @@ html.dark .hero-balance {
 .hero-stats {
   display: flex;
   flex-direction: column;
-  justify-content: center;
 }
 
 .hero-stats__row {
   display: grid;
   align-items: center;
+  flex: 1;
 }
 .hero-stats__row--three {
   grid-template-columns: repeat(3, 1fr);
   border-bottom: 1px solid rgba(167, 139, 250, 0.18);
+  align-items: stretch;
 }
 .hero-stats__row--four {
   grid-template-columns: repeat(4, 1fr);
+  align-items: stretch;
 }
 
 .hero-stats__row .stat-tile {
-  padding: 16px 20px;
+  padding: 18px 20px;
   border-right: 1px solid rgba(167, 139, 250, 0.18);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 .hero-stats__row--three .stat-tile:nth-child(3),
 .hero-stats__row--four .stat-tile:nth-child(4) {
@@ -980,9 +985,9 @@ html.dark .admin-dashboard :deep(.card) {
 
 /* ============ Dark mode ============ */
 html.dark .hero-panel {
-  background: rgba(15, 23, 42, 0.7);
-  backdrop-filter: blur(18px) saturate(180%);
-  border-color: rgba(71, 85, 105, 0.5);
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(20px) saturate(180%);
+  border-color: rgba(71, 85, 105, 0.3);
   box-shadow:
     0 4px 24px rgba(0, 0, 0, 0.35),
     0 1px 2px rgba(0, 0, 0, 0.25);

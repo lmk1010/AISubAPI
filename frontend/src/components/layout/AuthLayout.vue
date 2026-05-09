@@ -1,10 +1,5 @@
 <template>
   <div class="auth-shell">
-    <!-- Pixel-wave decorative background, same as the marketing pages. -->
-    <div class="auth-bg" aria-hidden="true">
-      <img class="auth-bg__image" src="/home-hero-bg.png?v=2" alt="" aria-hidden="true" />
-    </div>
-
     <!-- Top-right minimal actions: locale + theme -->
     <div class="auth-topbar">
       <LocaleSwitcher />
@@ -96,43 +91,8 @@ onMounted(() => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  background: #eef2ff;
-  overflow: hidden;
+  background: #f1f3fb url('/light-bg.png') no-repeat center center / cover;
   padding: 24px 16px;
-}
-
-.auth-bg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0) 8%,
-    rgba(0, 0, 0, 1) 28%,
-    rgba(0, 0, 0, 1) 92%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0) 8%,
-    rgba(0, 0, 0, 1) 28%,
-    rgba(0, 0, 0, 1) 92%,
-    rgba(0, 0, 0, 0) 100%
-  );
-}
-
-.auth-bg__image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  user-select: none;
-  filter: saturate(1.2) contrast(1.05);
 }
 
 .auth-topbar {
@@ -215,12 +175,8 @@ onMounted(() => {
 
 <style>
 html.dark .auth-shell {
-  background: #0a0f1a;
-}
-html.dark .auth-bg__image {
-  opacity: 0.5;
-  filter: hue-rotate(15deg) saturate(1.2);
-  mix-blend-mode: screen;
+  background: #0a0f1a url('/dark-dashboard-bg.png') no-repeat center center / cover;
+  color: #e2e8f0;
 }
 html.dark .auth-brand__name {
   color: #f8fafc;

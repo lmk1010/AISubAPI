@@ -13,10 +13,6 @@
 
   <!-- Default Home Page -->
   <div v-else class="home-shell">
-    <!-- Decorative pixel-wave background (constrained band, not full-page wash) -->
-    <div class="bg-layer" aria-hidden="true">
-      <img class="bg-image" src="/home-hero-bg.png?v=2" alt="" aria-hidden="true" />
-    </div>
 
     <!-- Header -->
     <header class="site-header">
@@ -61,8 +57,6 @@
             </a>
             <router-link v-else to="/docs">{{ t('home.nav.docs') }}</router-link>
           </li>
-          <li><a href="#changelog">{{ t('home.nav.changelog') }}</a></li>
-          <li><a :href="githubUrl" target="_blank" rel="noopener noreferrer">{{ t('home.nav.community') }}</a></li>
         </ul>
 
         <!-- Right actions -->
@@ -293,48 +287,10 @@ onMounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #eef2ff;
-  overflow: hidden;
+  background: #f1f3fb url('/light-bg.png') no-repeat center center / cover;
   color: #0f172a;
 }
 
-/* ── Background ──────────────────────────────────── */
-.bg-layer {
-  position: absolute;
-  /* Cover the full shell — no fixed band edges. The mask below shapes
-     where the illustration is visible, so the image dissolves into the
-     page bg instead of being clipped to a rectangular band. */
-  inset: 0;
-  pointer-events: none;
-  overflow: hidden;
-  -webkit-mask-image: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0) 8%,
-    rgba(0, 0, 0, 1) 28%,
-    rgba(0, 0, 0, 1) 92%,
-    rgba(0, 0, 0, 0) 100%
-  );
-  mask-image: linear-gradient(
-    180deg,
-    rgba(0, 0, 0, 0) 0%,
-    rgba(0, 0, 0, 0) 8%,
-    rgba(0, 0, 0, 1) 28%,
-    rgba(0, 0, 0, 1) 92%,
-    rgba(0, 0, 0, 0) 100%
-  );
-}
-
-.bg-image {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center;
-  user-select: none;
-  filter: saturate(1.2) contrast(1.05);
-}
 
 /* ── Header ──────────────────────────────────────── */
 .site-header {
@@ -787,14 +743,8 @@ onMounted(() => {
 -->
 <style>
 html.dark .home-shell {
-  background: #0a0f1a;
+  background: #0a0f1a url('/dark-dashboard-bg.png') no-repeat center center / cover;
   color: #e2e8f0;
-}
-
-html.dark .bg-image {
-  opacity: 0.55;
-  filter: hue-rotate(15deg) saturate(1.2);
-  mix-blend-mode: screen;
 }
 
 html.dark .center-nav a {
@@ -848,9 +798,16 @@ html.dark .cta-secondary:hover {
 }
 
 html.dark .brand-pill {
-  background: rgba(30, 41, 59, 0.85);
-  border-color: rgba(71, 85, 105, 0.6);
+  background: rgba(15, 23, 42, 0.80);
+  border-color: rgba(71, 85, 105, 0.45);
   color: #e2e8f0;
+  box-shadow:
+    0 8px 28px -10px rgba(0, 0, 0, 0.5),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+}
+
+html.dark .brand-pill--openai svg {
+  color: #f1f5f9;
 }
 
 html.dark .brand-pill--anthropic svg path {
