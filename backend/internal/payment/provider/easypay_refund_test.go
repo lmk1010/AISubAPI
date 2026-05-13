@@ -179,6 +179,61 @@ func TestEasyPayRefundResponseErrors(t *testing.T) {
 	}
 }
 
+func TestNewEasyPayHTTPClientDisablesHTTP2(t *testing.T) {
+	t.Parallel()
+
+	client := newEasyPayHTTPClient()
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok {
+		t.Fatalf("transport type = %T, want *http.Transport", client.Transport)
+	}
+	if transport.ForceAttemptHTTP2 {
+		t.Fatal("ForceAttemptHTTP2 = true, want false")
+	}
+	if len(transport.TLSNextProto) != 0 {
+		t.Fatalf("TLSNextProto len = %d, want 0", len(transport.TLSNextProto))
+	}
+	if transport.TLSClientConfig == nil ||
+		len(transport.TLSClientConfig.NextProtos) != 1 ||
+		transport.TLSClientConfig.NextProtos[0] != "http/1.1" {
+		t.Fatalf("NextProtos = %#v, want [http/1.1]", transport.TLSClientConfig)
+	}
+}
+
+func TestEasyPayQueryOrderRetriesEmptyResponse(t *testing.T) {
+	var attempts int
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		attempts++
+		if r.URL.Path != "/api.php" {
+			t.Errorf("query path = %q, want /api.php", r.URL.Path)
+		}
+		if err := r.ParseForm(); err != nil {
+			t.Errorf("ParseForm: %v", err)
+		}
+		if got := r.PostForm.Get("out_trade_no"); got != "out-789" {
+			t.Errorf("form[out_trade_no] = %q, want out-789", got)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		if attempts == 1 {
+			return
+		}
+		_, _ = w.Write([]byte(`{"code":1,"msg":"ok","status":1,"money":"12.34"}`))
+	}))
+	defer server.Close()
+
+	provider := newTestEasyPay(t, server.URL)
+	resp, err := provider.QueryOrder(context.Background(), "out-789")
+	if err != nil {
+		t.Fatalf("QueryOrder returned error: %v", err)
+	}
+	if attempts != 2 {
+		t.Fatalf("query attempts = %d, want 2", attempts)
+	}
+	if resp == nil || resp.Status != payment.ProviderStatusPaid || resp.Amount != 12.34 {
+		t.Fatalf("QueryOrder response = %+v, want paid 12.34", resp)
+	}
+}
+
 func newTestEasyPay(t *testing.T, apiBase string) *EasyPay {
 	t.Helper()
 

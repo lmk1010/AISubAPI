@@ -180,6 +180,43 @@ describe('PaymentResultView', () => {
     expect(window.localStorage.getItem(PAYMENT_RECOVERY_STORAGE_KEY)).toBeNull()
   })
 
+  it('passes EasyPay signed return params to resume-token recovery', async () => {
+    routeState.query = {
+      resume_token: 'resume-return',
+      order_id: '42',
+      status: 'success',
+      out_trade_no: 'sub2_20260420abcd1234',
+      trade_status: 'TRADE_SUCCESS',
+      sign: 'signed-return',
+      sign_type: 'MD5',
+      money: '88.00',
+      type: 'alipay',
+    }
+    resolveOrderPublicByResumeToken.mockResolvedValue({
+      data: orderFactory('PAID'),
+    })
+
+    const wrapper = mount(PaymentResultView, {
+      global: {
+        stubs: {
+          OrderStatusBadge: true,
+        },
+      },
+    })
+
+    await flushPromises()
+
+    expect(resolveOrderPublicByResumeToken).toHaveBeenCalledWith(
+      'resume-return',
+      expect.stringContaining('trade_status=TRADE_SUCCESS'),
+    )
+    const providerReturnQuery = resolveOrderPublicByResumeToken.mock.calls[0][1] as string
+    expect(providerReturnQuery).toContain('sign=signed-return')
+    expect(providerReturnQuery).toContain('status=success')
+    expect(providerReturnQuery).toContain('resume_token=resume-return')
+    expect(wrapper.text()).toContain('payment.result.success')
+  })
+
   it('refreshes a pending resume-token result until the order becomes paid', async () => {
     vi.useFakeTimers()
     routeState.query = {

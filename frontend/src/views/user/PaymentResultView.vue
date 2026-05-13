@@ -189,6 +189,30 @@ function readRouteQueryString(key: string): string {
   return typeof value === 'string' ? value : ''
 }
 
+function buildProviderReturnQuery(): string {
+  const tradeStatus = readRouteQueryString('trade_status').trim()
+  const sign = readRouteQueryString('sign').trim()
+  if (!tradeStatus || !sign) {
+    return ''
+  }
+
+  const values = new URLSearchParams()
+  Object.entries(route.query).forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach((entry) => {
+        if (typeof entry === 'string') {
+          values.append(key, entry)
+        }
+      })
+      return
+    }
+    if (typeof value === 'string') {
+      values.append(key, value)
+    }
+  })
+  return values.toString()
+}
+
 function restoreRecoverySnapshot(context: {
   resumeToken: string
   routeOrderId: number
@@ -229,9 +253,11 @@ function restoreRecoverySnapshot(context: {
   return restored
 }
 
-async function resolveOrderFromResumeToken(resumeToken: string): Promise<PaymentOrder | null> {
+async function resolveOrderFromResumeToken(resumeToken: string, providerReturnQuery = ''): Promise<PaymentOrder | null> {
   try {
-    const result = await paymentAPI.resolveOrderPublicByResumeToken(resumeToken)
+    const result = providerReturnQuery.trim()
+      ? await paymentAPI.resolveOrderPublicByResumeToken(resumeToken, providerReturnQuery)
+      : await paymentAPI.resolveOrderPublicByResumeToken(resumeToken)
     return result.data
   } catch (_err: unknown) {
     return null
@@ -288,6 +314,7 @@ function scheduleStatusRefresh(refreshOrder: (() => Promise<PaymentOrder | null>
 
 onMounted(async () => {
   const resumeToken = readRouteQueryString('resume_token')
+  const providerReturnQuery = buildProviderReturnQuery()
   const routeOrderId = Number(readRouteQueryString('order_id')) || 0
   let outTradeNo = readRouteQueryString('out_trade_no')
   let orderId = 0
@@ -306,7 +333,7 @@ onMounted(async () => {
   }
 
   if (resumeToken) {
-    const resolvedOrder = await resolveOrderFromResumeToken(resumeToken)
+    const resolvedOrder = await resolveOrderFromResumeToken(resumeToken, providerReturnQuery)
     if (resolvedOrder) {
       order.value = resolvedOrder
       if (!orderId) {
@@ -354,7 +381,7 @@ onMounted(async () => {
 
   const refreshOrder = async (): Promise<PaymentOrder | null> => {
     if (resumeToken) {
-      const resolvedOrder = await resolveOrderFromResumeToken(resumeToken)
+      const resolvedOrder = await resolveOrderFromResumeToken(resumeToken, providerReturnQuery)
       if (resolvedOrder) {
         return resolvedOrder
       }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"crypto/hmac"
 	"crypto/md5"
+	"crypto/tls"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -21,15 +22,17 @@ import (
 
 // EasyPay constants.
 const (
-	easypayCodeSuccess     = 1
-	easypayStatusPaid      = 1
-	easypayHTTPTimeout     = 10 * time.Second
-	maxEasypayResponseSize = 1 << 20 // 1MB
-	maxEasypayErrorSummary = 512
-	tradeStatusSuccess     = "TRADE_SUCCESS"
-	signTypeMD5            = "MD5"
-	paymentModePopup       = "popup"
-	deviceMobile           = "mobile"
+	easypayCodeSuccess      = 1
+	easypayStatusPaid       = 1
+	easypayHTTPTimeout      = 10 * time.Second
+	easypayQueryRetryDelay  = 150 * time.Millisecond
+	easypayQueryMaxAttempts = 3
+	maxEasypayResponseSize  = 1 << 20 // 1MB
+	maxEasypayErrorSummary  = 512
+	tradeStatusSuccess      = "TRADE_SUCCESS"
+	signTypeMD5             = "MD5"
+	paymentModePopup        = "popup"
+	deviceMobile            = "mobile"
 )
 
 // EasyPay implements payment.Provider for the EasyPay aggregation platform.
@@ -55,8 +58,21 @@ func NewEasyPay(instanceID string, config map[string]string) (*EasyPay, error) {
 	return &EasyPay{
 		instanceID: instanceID,
 		config:     cfg,
-		httpClient: &http.Client{Timeout: easypayHTTPTimeout},
+		httpClient: newEasyPayHTTPClient(),
 	}, nil
+}
+
+func newEasyPayHTTPClient() *http.Client {
+	transport := http.DefaultTransport.(*http.Transport).Clone()
+	transport.ForceAttemptHTTP2 = false
+	transport.TLSNextProto = map[string]func(string, *tls.Conn) http.RoundTripper{}
+	if transport.TLSClientConfig == nil {
+		transport.TLSClientConfig = &tls.Config{}
+	} else {
+		transport.TLSClientConfig = transport.TLSClientConfig.Clone()
+	}
+	transport.TLSClientConfig.NextProtos = []string{"http/1.1"}
+	return &http.Client{Timeout: easypayHTTPTimeout, Transport: transport}
 }
 
 func normalizeEasyPayAPIBase(apiBase string) string {
@@ -209,9 +225,35 @@ func (e *EasyPay) QueryOrder(ctx context.Context, tradeNo string) (*payment.Quer
 		"act": "order", "pid": e.config["pid"],
 		"key": e.config["pkey"], "out_trade_no": tradeNo,
 	}
-	body, err := e.post(ctx, e.apiBase()+"/api.php", params)
+	var lastErr error
+	for attempt := 0; attempt < easypayQueryMaxAttempts; attempt++ {
+		if attempt > 0 {
+			select {
+			case <-ctx.Done():
+				return nil, fmt.Errorf("easypay query: %w", ctx.Err())
+			case <-time.After(time.Duration(attempt) * easypayQueryRetryDelay):
+			}
+		}
+		resp, err := e.queryOrderOnce(ctx, tradeNo, params)
+		if err == nil {
+			return resp, nil
+		}
+		lastErr = err
+	}
+	return nil, fmt.Errorf("easypay query: %w", lastErr)
+}
+
+func (e *EasyPay) queryOrderOnce(ctx context.Context, tradeNo string, params map[string]string) (*payment.QueryOrderResponse, error) {
+	body, statusCode, err := e.postRaw(ctx, e.apiBase()+"/api.php", params)
 	if err != nil {
-		return nil, fmt.Errorf("easypay query: %w", err)
+		return nil, err
+	}
+	summary := summarizeEasyPayResponse(body)
+	if statusCode < http.StatusOK || statusCode >= http.StatusMultipleChoices {
+		return nil, fmt.Errorf("HTTP %d: %s", statusCode, summary)
+	}
+	if strings.TrimSpace(string(body)) == "" {
+		return nil, fmt.Errorf("empty response (HTTP %d): %s", statusCode, summary)
 	}
 	var resp struct {
 		Code   int    `json:"code"`
@@ -220,7 +262,7 @@ func (e *EasyPay) QueryOrder(ctx context.Context, tradeNo string) (*payment.Quer
 		Money  string `json:"money"`
 	}
 	if err := json.Unmarshal(body, &resp); err != nil {
-		return nil, fmt.Errorf("easypay parse query: %w", err)
+		return nil, fmt.Errorf("non-JSON response (HTTP %d): %s", statusCode, summary)
 	}
 	status := payment.ProviderStatusPending
 	if resp.Status == easypayStatusPaid {
@@ -426,7 +468,7 @@ func (e *EasyPay) postRaw(ctx context.Context, endpoint string, params map[strin
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	client := e.httpClient
 	if client == nil {
-		client = &http.Client{Timeout: easypayHTTPTimeout}
+		client = newEasyPayHTTPClient()
 	}
 	resp, err := client.Do(req)
 	if err != nil {

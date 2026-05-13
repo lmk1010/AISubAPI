@@ -37,4 +37,13 @@ describe('payment api', () => {
       resume_token: 'resume-token-123',
     })
   })
+
+  it('passes provider return query when resolving a signed resume-token order', async () => {
+    await paymentAPI.resolveOrderPublicByResumeToken('resume-token-123', 'trade_status=TRADE_SUCCESS&sign=signed')
+
+    expect(post).toHaveBeenCalledWith('/payment/public/orders/resolve', {
+      resume_token: 'resume-token-123',
+      provider_return_query: 'trade_status=TRADE_SUCCESS&sign=signed',
+    })
+  })
 })

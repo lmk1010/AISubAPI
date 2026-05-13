@@ -78,8 +78,12 @@ export const paymentAPI = {
   },
 
   /** Resolve an order from a signed resume token without auth */
-  resolveOrderPublicByResumeToken(resumeToken: string) {
-    return apiClient.post<PaymentOrder>('/payment/public/orders/resolve', { resume_token: resumeToken })
+  resolveOrderPublicByResumeToken(resumeToken: string, providerReturnQuery = '') {
+    const payload: { resume_token: string; provider_return_query?: string } = { resume_token: resumeToken }
+    if (providerReturnQuery.trim()) {
+      payload.provider_return_query = providerReturnQuery
+    }
+    return apiClient.post<PaymentOrder>('/payment/public/orders/resolve', payload)
   },
 
   /** Request a refund for a completed order */

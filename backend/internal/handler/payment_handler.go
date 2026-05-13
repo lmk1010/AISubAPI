@@ -458,7 +458,8 @@ type VerifyOrderRequest struct {
 }
 
 type ResolveOrderByResumeTokenRequest struct {
-	ResumeToken string `json:"resume_token" binding:"required"`
+	ResumeToken         string `json:"resume_token" binding:"required"`
+	ProviderReturnQuery string `json:"provider_return_query,omitempty"`
 }
 
 // VerifyOrder actively queries the upstream payment provider to check
@@ -557,7 +558,7 @@ func (h *PaymentHandler) ResolveOrderPublicByResumeToken(c *gin.Context) {
 		return
 	}
 
-	order, err := h.paymentService.GetPublicOrderByResumeToken(c.Request.Context(), req.ResumeToken)
+	order, err := h.paymentService.GetPublicOrderByResumeTokenWithProviderReturn(c.Request.Context(), req.ResumeToken, req.ProviderReturnQuery)
 	if err != nil {
 		response.ErrorFrom(c, err)
 		return
