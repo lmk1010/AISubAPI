@@ -3980,7 +3980,7 @@ export default {
       testPrompt: '提示词："hi"',
       imagePromptLabel: '生图提示词',
       imagePromptPlaceholder: '例如：生成一只戴宇航员头盔的橘猫，像素插画风格，纯色背景。',
-      imagePromptDefault: 'Generate a cute orange cat astronaut sticker on a clean pastel background.',
+      imagePromptDefault: 'tiny orange cat sticker',
       imageTestHint: '选择图片模型后，这里会直接发起生图测试，并在下方展示返回图片。',
       imageTestMode: '模式：生图测试',
       imagePreview: '生成结果：',

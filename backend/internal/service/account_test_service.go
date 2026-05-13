@@ -52,8 +52,8 @@ type TestEvent struct {
 
 const (
 	defaultGeminiTextTestPrompt  = "hi"
-	defaultGeminiImageTestPrompt = "Generate a cute orange cat astronaut sticker on a clean pastel background."
-	defaultOpenAIImageTestPrompt = "Generate a cute orange cat astronaut sticker on a clean pastel background."
+	defaultGeminiImageTestPrompt = "tiny orange cat sticker"
+	defaultOpenAIImageTestPrompt = "tiny orange cat sticker"
 )
 
 // isOpenAIImageModel checks if the model is an OpenAI image generation model (e.g. gpt-image-2).
