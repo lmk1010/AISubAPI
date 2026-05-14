@@ -1,6 +1,10 @@
 package admin
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/Wei-Shaw/sub2api/internal/service"
+)
 
 func TestUpstreamRemoteAccountSnapshotEffectiveUsedQuotaUsesLargestRemoteValue(t *testing.T) {
 	tests := []struct {
@@ -61,5 +65,27 @@ func TestParseNewAPIDataUnwrapsEnvelope(t *testing.T) {
 	}
 	if out.Name != "cc" || out.TotalUsed != 500000 || out.Available != 1000000 {
 		t.Fatalf("unexpected parsed token usage: %+v", out)
+	}
+}
+
+func TestBuildRealGroupCostSummariesAllocatesByStandardCost(t *testing.T) {
+	groups := []service.UpstreamCostGroupBreakdown{
+		{GroupID: 1, GroupName: "default", CurrentGroupRate: 1, Requests: 2, TotalTokens: 200, StandardCost: 80, UserCost: 80},
+		{GroupID: 6, GroupName: "codex-vip-1", CurrentGroupRate: 0.08, Requests: 1, TotalTokens: 100, StandardCost: 20, UserCost: 1.6},
+	}
+
+	out := buildRealGroupCostSummaries(groups, 100, 50)
+
+	if len(out) != 2 {
+		t.Fatalf("len(out) = %d, want 2", len(out))
+	}
+	if out[0].AllocatedUpstreamUsedRMB != 40 {
+		t.Fatalf("default allocated = %v, want 40", out[0].AllocatedUpstreamUsedRMB)
+	}
+	if out[1].AllocatedUpstreamUsedRMB != 10 {
+		t.Fatalf("vip allocated = %v, want 10", out[1].AllocatedUpstreamUsedRMB)
+	}
+	if out[1].DownstreamEffectiveRate != 0.08 {
+		t.Fatalf("vip effective rate = %v, want 0.08", out[1].DownstreamEffectiveRate)
 	}
 }

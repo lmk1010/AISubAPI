@@ -12,6 +12,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/Wei-Shaw/sub2api/internal/pkg/response"
@@ -24,8 +25,10 @@ const newAPIQuotaUnitsPerRMB = 500000.0
 
 // UpstreamCostHandler handles upstream cost analysis proxy requests
 type UpstreamCostHandler struct {
-	client       *http.Client
-	localService *service.UpstreamCostService
+	client             *http.Client
+	localService       *service.UpstreamCostService
+	realSummaryCacheMu sync.RWMutex
+	realSummaryCache   *upstreamRealSummaryResponse
 }
 
 // NewUpstreamCostHandler creates a new upstream cost handler
@@ -256,8 +259,23 @@ type upstreamRealAccountCostSummary struct {
 	TokenHash               string                               `json:"token_hash"`
 	RemoteStatus            string                               `json:"remote_status"`
 	Error                   string                               `json:"error"`
+	Groups                  []upstreamRealGroupCostSummary       `json:"groups"`
 	Trend                   []service.UpstreamCostTrendPoint     `json:"trend"`
 	Models                  []service.UpstreamCostModelBreakdown `json:"models"`
+}
+
+type upstreamRealGroupCostSummary struct {
+	GroupID                  int64   `json:"group_id"`
+	GroupName                string  `json:"group_name"`
+	CurrentGroupRate         float64 `json:"current_group_rate"`
+	Requests                 int64   `json:"requests"`
+	TotalTokens              int64   `json:"total_tokens"`
+	StandardCost             float64 `json:"standard_cost"`
+	DownstreamRevenueRMB     float64 `json:"downstream_revenue_rmb"`
+	LocalAccountCostRMB      float64 `json:"local_account_cost_rmb"`
+	AllocatedUpstreamUsedRMB float64 `json:"allocated_upstream_used_rmb"`
+	ProfitRMB                float64 `json:"profit_rmb"`
+	DownstreamEffectiveRate  float64 `json:"downstream_effective_rate"`
 }
 
 type upstreamRealPoolAccumulator struct {
@@ -328,6 +346,16 @@ func (h *UpstreamCostHandler) GetLocalSummary(c *gin.Context) {
 func (h *UpstreamCostHandler) GetRealSummary(c *gin.Context) {
 	if h.localService == nil {
 		response.Error(c, http.StatusInternalServerError, "Upstream cost service is not configured")
+		return
+	}
+
+	refresh := queryBool(c.Query("refresh"))
+	if !refresh {
+		if cached := h.cachedRealSummary(); cached != nil {
+			response.Success(c, cached)
+			return
+		}
+		response.Success(c, emptyRealSummaryResponse(time.Now()))
 		return
 	}
 
@@ -475,7 +503,33 @@ func (h *UpstreamCostHandler) GetRealSummary(c *gin.Context) {
 		return out.Pools[i].UpstreamUsedRMB > out.Pools[j].UpstreamUsedRMB
 	})
 
+	h.setCachedRealSummary(&out)
 	response.Success(c, out)
+}
+
+func (h *UpstreamCostHandler) cachedRealSummary() *upstreamRealSummaryResponse {
+	h.realSummaryCacheMu.RLock()
+	defer h.realSummaryCacheMu.RUnlock()
+	return h.realSummaryCache
+}
+
+func (h *UpstreamCostHandler) setCachedRealSummary(summary *upstreamRealSummaryResponse) {
+	if summary == nil {
+		return
+	}
+	h.realSummaryCacheMu.Lock()
+	defer h.realSummaryCacheMu.Unlock()
+	h.realSummaryCache = summary
+}
+
+func emptyRealSummaryResponse(now time.Time) upstreamRealSummaryResponse {
+	return upstreamRealSummaryResponse{
+		StartDate:   time.Unix(0, 0).UTC().Format("2006-01-02"),
+		EndDate:     now.Format("2006-01-02"),
+		GeneratedAt: now,
+		Scope:       "remote_upstream_cache_empty",
+		Pools:       []upstreamRealPoolSummary{},
+	}
 }
 
 func (h *UpstreamCostHandler) buildRealAccountCostSummary(
@@ -563,7 +617,35 @@ func (h *UpstreamCostHandler) buildRealAccountCostSummary(
 
 	child.ProfitRMB = child.DownstreamRevenueRMB - child.UpstreamUsedRMB
 	child.UpstreamEffectiveRate = child.UpstreamConfiguredRate
+	child.Groups = buildRealGroupCostSummaries(local.Groups, child.StandardCost, child.UpstreamUsedRMB)
 	return child
+}
+
+func buildRealGroupCostSummaries(groups []service.UpstreamCostGroupBreakdown, accountStandardCost, accountUpstreamUsedRMB float64) []upstreamRealGroupCostSummary {
+	if len(groups) == 0 {
+		return []upstreamRealGroupCostSummary{}
+	}
+	out := make([]upstreamRealGroupCostSummary, 0, len(groups))
+	for _, group := range groups {
+		allocatedUpstream := 0.0
+		if accountStandardCost > 0 && accountUpstreamUsedRMB > 0 {
+			allocatedUpstream = accountUpstreamUsedRMB * group.StandardCost / accountStandardCost
+		}
+		out = append(out, upstreamRealGroupCostSummary{
+			GroupID:                  group.GroupID,
+			GroupName:                group.GroupName,
+			CurrentGroupRate:         group.CurrentGroupRate,
+			Requests:                 group.Requests,
+			TotalTokens:              group.TotalTokens,
+			StandardCost:             group.StandardCost,
+			DownstreamRevenueRMB:     group.UserCost,
+			LocalAccountCostRMB:      group.UpstreamCost,
+			AllocatedUpstreamUsedRMB: allocatedUpstream,
+			ProfitRMB:                group.UserCost - allocatedUpstream,
+			DownstreamEffectiveRate:  safeRatio(group.UserCost, group.StandardCost),
+		})
+	}
+	return out
 }
 
 // --- Helper: do upstream request ---
@@ -893,6 +975,15 @@ func safeRatio(numerator, denominator float64) float64 {
 		return 0
 	}
 	return numerator / denominator
+}
+
+func queryBool(raw string) bool {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "1", "true", "yes", "y", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func appendError(existing, next string) string {

@@ -85,8 +85,20 @@ type UpstreamCostAccountSummary struct {
 	UpstreamCost   float64                      `json:"upstream_cost"`
 	UserCost       float64                      `json:"user_cost"`
 	Profit         float64                      `json:"profit"`
+	Groups         []UpstreamCostGroupBreakdown `json:"groups"`
 	Trend          []UpstreamCostTrendPoint     `json:"trend"`
 	Models         []UpstreamCostModelBreakdown `json:"models"`
+}
+
+type UpstreamCostGroupBreakdown struct {
+	GroupID          int64   `json:"group_id"`
+	GroupName        string  `json:"group_name"`
+	CurrentGroupRate float64 `json:"current_group_rate"`
+	Requests         int64   `json:"requests"`
+	TotalTokens      int64   `json:"total_tokens"`
+	StandardCost     float64 `json:"standard_cost"`
+	UpstreamCost     float64 `json:"upstream_cost"`
+	UserCost         float64 `json:"user_cost"`
 }
 
 type UpstreamCostTrendPoint struct {
@@ -258,6 +270,10 @@ func (s *UpstreamCostService) GetConfiguredAccountSummaries(ctx context.Context,
 	if err != nil {
 		return nil, fmt.Errorf("query account stats: %w", err)
 	}
+	groupsByAccount, err := s.queryAccountGroupStats(ctx, startTime, endTime, accountIDs)
+	if err != nil {
+		return nil, fmt.Errorf("query account group stats: %w", err)
+	}
 	trendByAccount, err := s.queryAccountTrend(ctx, startTime, endTime, accountIDs)
 	if err != nil {
 		return nil, fmt.Errorf("query account trend: %w", err)
@@ -289,6 +305,7 @@ func (s *UpstreamCostService) GetConfiguredAccountSummaries(ctx context.Context,
 			UpstreamCost:   stats.UpstreamCost,
 			UserCost:       stats.UserCost,
 			Profit:         stats.UserCost - stats.UpstreamCost,
+			Groups:         groupsByAccount[accountID],
 			Trend:          trendByAccount[accountID],
 			Models:         modelsByAccount[accountID],
 		}
@@ -453,6 +470,55 @@ func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, 
 			return nil, err
 		}
 		out[accountID] = stats
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (s *UpstreamCostService) queryAccountGroupStats(ctx context.Context, startTime, endTime time.Time, accountIDs []int64) (map[int64][]UpstreamCostGroupBreakdown, error) {
+	query := `
+		SELECT
+			ul.account_id,
+			COALESCE(ul.group_id, 0) AS group_id,
+			COALESCE(NULLIF(g.name, ''), '未绑定分组') AS group_name,
+			COALESCE(g.rate_multiplier, 0) AS current_group_rate,
+			COUNT(*) AS requests,
+			COALESCE(SUM(ul.input_tokens + ul.output_tokens + ul.cache_creation_tokens + ul.cache_read_tokens), 0) AS total_tokens,
+			COALESCE(SUM(ul.total_cost), 0) AS standard_cost,
+			COALESCE(SUM(COALESCE(ul.account_stats_cost, ul.total_cost) * COALESCE(ul.account_rate_multiplier, 1)), 0) AS upstream_cost,
+			COALESCE(SUM(ul.actual_cost), 0) AS user_cost
+		FROM usage_logs ul
+		LEFT JOIN groups g ON g.id = ul.group_id
+		WHERE ul.created_at >= $1 AND ul.created_at < $2 AND ul.account_id = ANY($3)
+		GROUP BY ul.account_id, ul.group_id, g.name, g.rate_multiplier
+		ORDER BY ul.account_id ASC, user_cost DESC, group_name ASC
+	`
+	rows, err := s.db.QueryContext(ctx, query, startTime, endTime, pq.Array(accountIDs))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	out := make(map[int64][]UpstreamCostGroupBreakdown, len(accountIDs))
+	for rows.Next() {
+		var accountID int64
+		var item UpstreamCostGroupBreakdown
+		if err := rows.Scan(
+			&accountID,
+			&item.GroupID,
+			&item.GroupName,
+			&item.CurrentGroupRate,
+			&item.Requests,
+			&item.TotalTokens,
+			&item.StandardCost,
+			&item.UpstreamCost,
+			&item.UserCost,
+		); err != nil {
+			return nil, err
+		}
+		out[accountID] = append(out[accountID], item)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err

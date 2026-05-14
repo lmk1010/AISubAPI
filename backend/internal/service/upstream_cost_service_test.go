@@ -69,6 +69,15 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(statsRows)
 
+	groupRows := sqlmock.NewRows([]string{
+		"account_id", "group_id", "group_name", "current_group_rate", "requests", "total_tokens", "standard_cost", "upstream_cost", "user_cost",
+	}).
+		AddRow(int64(1), int64(101), "kiro-vip", 1.8, int64(2), int64(170), 10.0, 12.0, 18.0).
+		AddRow(int64(2), int64(102), "kiro-wholesale", 1.4, int64(1), int64(110), 5.0, 7.0, 8.0)
+	mock.ExpectQuery("FROM usage_logs ul").
+		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
+		WillReturnRows(groupRows)
+
 	trendRows := sqlmock.NewRows([]string{
 		"account_id", "date", "requests", "input_tokens", "output_tokens", "cache_tokens", "total_tokens", "standard_cost", "upstream_cost", "user_cost",
 	}).
@@ -108,6 +117,9 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 	require.InDelta(t, 7.0, pool.Profit, 0.000001)
 	require.InDelta(t, 19.0, summary.Totals.UpstreamCost, 0.000001)
 	require.InDelta(t, 26.0, summary.Totals.UserCost, 0.000001)
+	require.Len(t, pool.Accounts[0].Groups, 1)
+	require.Equal(t, "kiro-vip", pool.Accounts[0].Groups[0].GroupName)
+	require.InDelta(t, 1.8, pool.Accounts[0].Groups[0].CurrentGroupRate, 0.000001)
 	require.Len(t, pool.Trend, 1)
 	require.InDelta(t, 19.0, pool.Trend[0].UpstreamCost, 0.000001)
 	require.Len(t, pool.Models, 1)

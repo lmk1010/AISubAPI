@@ -13,6 +13,7 @@ export interface UpstreamLocalSummaryParams {
   start_date?: string
   end_date?: string
   timezone?: string
+  refresh?: boolean
 }
 
 export interface UpstreamUserInfo {
@@ -104,8 +105,20 @@ export interface UpstreamCostAccountSummary {
   upstream_cost: number
   user_cost: number
   profit: number
+  groups: UpstreamCostGroupBreakdown[]
   trend: UpstreamCostTrendPoint[]
   models: UpstreamCostModelBreakdown[]
+}
+
+export interface UpstreamCostGroupBreakdown {
+  group_id: number
+  group_name: string
+  current_group_rate: number
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  upstream_cost: number
+  user_cost: number
 }
 
 export interface UpstreamCostPoolSummary {
@@ -178,8 +191,23 @@ export interface UpstreamRealAccountSummary {
   token_hash: string
   remote_status: 'ok' | 'partial' | 'error' | string
   error: string
+  groups: UpstreamRealGroupSummary[]
   trend: UpstreamCostTrendPoint[]
   models: UpstreamCostModelBreakdown[]
+}
+
+export interface UpstreamRealGroupSummary {
+  group_id: number
+  group_name: string
+  current_group_rate: number
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  downstream_revenue_rmb: number
+  local_account_cost_rmb: number
+  allocated_upstream_used_rmb: number
+  profit_rmb: number
+  downstream_effective_rate: number
 }
 
 export interface UpstreamRealPoolSummary {

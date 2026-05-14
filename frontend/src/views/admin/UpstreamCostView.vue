@@ -24,7 +24,7 @@
               未分摊 {{ money(realSummary.totals.unallocated_upstream_used_rmb) }}
             </span>
           </div>
-          <button @click="fetchAllChannelCosts" :disabled="batchFetching" class="btn btn-primary">
+          <button @click="fetchAllChannelCosts(true)" :disabled="batchFetching" class="btn btn-primary">
             <Icon name="refresh" size="md" :class="batchFetching ? 'animate-spin' : ''" />
             <span class="ml-1.5">刷新真实上游</span>
           </button>
@@ -34,7 +34,7 @@
       <template #table>
         <DataTable :columns="columns" :data="tableData" :loading="loading">
           <template #cell-name="{ row }">
-            <div :class="row.rowType === 'account' ? 'pl-6' : ''">
+            <div :class="row.rowType === 'account' ? 'pl-6' : row.rowType === 'group' ? 'pl-12' : ''">
               <div class="flex items-center gap-2">
                 <span
                   v-if="row.rowType === 'pool'"
@@ -43,10 +43,16 @@
                   上游
                 </span>
                 <span
-                  v-else
+                  v-else-if="row.rowType === 'account'"
                   class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
                 >
                   账号
+                </span>
+                <span
+                  v-else
+                  class="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300"
+                >
+                  分组
                 </span>
                 <span class="max-w-72 truncate font-medium text-gray-900 dark:text-white" :title="row.name">{{ row.name }}</span>
                 <span
@@ -60,6 +66,7 @@
                 <span class="max-w-80 truncate" :title="row.baseUrl">{{ row.baseUrl }}</span>
                 <span v-if="row.rowType === 'account' && row.tokenHash">key {{ row.tokenHash }}</span>
                 <span v-if="row.rowType === 'account' && row.tokenName" class="max-w-32 truncate" :title="row.tokenName">{{ row.tokenName }}</span>
+                <span v-if="row.rowType === 'group'">ID {{ row.groupId || '—' }}</span>
               </div>
             </div>
           </template>
@@ -78,7 +85,8 @@
           </template>
 
           <template #cell-upstream_remaining_rmb="{ row }">
-            <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ money(row.upstreamRemainingRMB) }}</span>
+            <span v-if="row.rowType === 'group'" class="text-gray-300">—</span>
+            <span v-else class="font-medium text-emerald-600 dark:text-emerald-400">{{ money(row.upstreamRemainingRMB) }}</span>
           </template>
 
           <template #cell-upstream_used_usd="{ row }">
@@ -97,12 +105,16 @@
 
           <template #cell-rates="{ row }">
             <div class="space-y-0.5 text-[10px]">
-              <div>
+              <div v-if="row.rowType === 'group'">
+                <span class="text-gray-400">当前分组</span>
+                <span class="ml-1 font-semibold text-gray-700 dark:text-gray-200">{{ rate(row.currentGroupRate) }}</span>
+              </div>
+              <div v-else>
                 <span class="text-gray-400">上游配置</span>
                 <span class="ml-1 font-semibold text-gray-700 dark:text-gray-200">{{ rate(row.upstreamConfiguredRate) }}</span>
               </div>
               <div>
-                <span class="text-gray-400">下游有效</span>
+                <span class="text-gray-400">下游实扣</span>
                 <span class="ml-1 font-semibold text-blue-600 dark:text-blue-400">{{ rate(row.downstreamEffectiveRate) }}</span>
               </div>
             </div>
@@ -124,7 +136,7 @@
               >
                 {{ statusLabel(row.remoteStatus) }}
               </span>
-              <div v-if="row.rowType === 'account'" class="mt-1 text-[10px] text-gray-400">{{ sourceLabel(row.source) }}</div>
+              <div v-if="row.rowType !== 'pool'" class="mt-1 text-[10px] text-gray-400">{{ sourceLabel(row.source) }}</div>
               <div v-if="row.error" class="mt-1 truncate text-[10px] text-red-500" :title="row.error">{{ row.error }}</div>
             </div>
           </template>
@@ -147,6 +159,7 @@
                 <span class="text-[10px]">详情</span>
               </button>
             </div>
+            <span v-else-if="row.rowType === 'group'" class="text-gray-300">—</span>
             <span v-else class="text-gray-300">—</span>
           </template>
 
@@ -241,6 +254,36 @@
           {{ detailChild.error }}
         </div>
 
+        <div v-if="detailGroupBreakdown.length > 0" class="overflow-hidden rounded-lg border border-gray-200 dark:border-dark-600">
+          <table class="w-full text-left text-xs">
+            <thead class="bg-gray-50 text-[10px] font-semibold text-gray-500 dark:bg-dark-700 dark:text-gray-400">
+              <tr>
+                <th class="px-3 py-2">分组</th>
+                <th class="px-3 py-2">当前倍率</th>
+                <th class="px-3 py-2">历史实扣</th>
+                <th class="px-3 py-2">上游分摊</th>
+                <th class="px-3 py-2">用户扣费</th>
+                <th class="px-3 py-2">盈亏</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100 dark:divide-dark-700">
+              <tr v-for="group in detailGroupBreakdown" :key="group.group_id" class="text-gray-700 dark:text-gray-300">
+                <td class="px-3 py-2">
+                  <div class="font-medium text-gray-900 dark:text-white">{{ group.group_name }}</div>
+                  <div class="text-[10px] text-gray-400">{{ group.requests.toLocaleString() }} req / {{ group.total_tokens.toLocaleString() }} tokens</div>
+                </td>
+                <td class="px-3 py-2">{{ rate(group.current_group_rate) }}</td>
+                <td class="px-3 py-2 text-blue-600 dark:text-blue-400">{{ rate(group.downstream_effective_rate) }}</td>
+                <td class="px-3 py-2 text-red-600 dark:text-red-400">{{ money(group.allocated_upstream_used_rmb, 4) }}</td>
+                <td class="px-3 py-2 text-blue-600 dark:text-blue-400">{{ money(group.downstream_revenue_rmb, 4) }}</td>
+                <td class="px-3 py-2 font-semibold" :class="group.profit_rmb >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                  {{ signedMoney(group.profit_rmb, 4) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
         <div v-if="detailTrend.length > 0" class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
           <h3 class="mb-3 text-xs font-semibold text-gray-700 dark:text-gray-300">本地扣费趋势</h3>
           <div class="flex items-end gap-0.5" style="height: 100px">
@@ -281,6 +324,7 @@ import { upstreamCostAPI } from '@/api/upstream-cost'
 import type {
   UpstreamCostModelBreakdown,
   UpstreamRealAccountSummary,
+  UpstreamRealGroupSummary,
   UpstreamRealPoolSummary,
   UpstreamRealSummary
 } from '@/api/upstream-cost'
@@ -288,6 +332,7 @@ import type { Account } from '@/types'
 import { useAppStore } from '@/stores/app'
 
 const appStore = useAppStore()
+const realSummaryCacheKey = 'sub2api:admin:upstream-real-summary:v1'
 const accounts = ref<Account[]>([])
 const realSummary = ref<UpstreamRealSummary | null>(null)
 const loadingAccounts = ref(false)
@@ -307,12 +352,38 @@ async function loadAccounts() {
   }
 }
 
-async function fetchAllChannelCosts() {
+function loadCachedRealSummary() {
+  try {
+    const raw = window.localStorage.getItem(realSummaryCacheKey)
+    if (!raw) return
+    const cached = JSON.parse(raw) as UpstreamRealSummary
+    if (cached && Array.isArray(cached.pools)) {
+      realSummary.value = cached
+    }
+  } catch {
+    window.localStorage.removeItem(realSummaryCacheKey)
+  }
+}
+
+function saveCachedRealSummary(summary: UpstreamRealSummary) {
+  if (summary.scope === 'remote_upstream_cache_empty') return
+  try {
+    window.localStorage.setItem(realSummaryCacheKey, JSON.stringify(summary))
+  } catch {
+    // Ignore storage quota/private-mode failures; backend cache still works.
+  }
+}
+
+async function fetchAllChannelCosts(refresh = false) {
   batchFetching.value = true
   try {
-    realSummary.value = await upstreamCostAPI.getRealSummary({
+    const summary = await upstreamCostAPI.getRealSummary({
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      refresh,
     })
+    if (summary.scope === 'remote_upstream_cache_empty' && realSummary.value) return
+    realSummary.value = summary
+    saveCachedRealSummary(summary)
   } catch (err: any) {
     appStore.showError(err?.message || '真实上游成本加载失败')
   } finally {
@@ -376,7 +447,7 @@ async function saveConfig() {
     })
     appStore.showSuccess('配置已保存')
     showConfigDialog.value = false
-    await Promise.all([loadAccounts(), fetchAllChannelCosts()])
+    await Promise.all([loadAccounts(), fetchAllChannelCosts(true)])
   } catch (err: any) {
     appStore.showError(err?.message || '保存失败')
   } finally {
@@ -386,11 +457,13 @@ async function saveConfig() {
 
 interface TableRow {
   id: string
-  rowType: 'pool' | 'account'
+  rowType: 'pool' | 'account' | 'group'
   name: string
   providerType: string
   baseUrl: string
   accountCount: number
+  groupId: number
+  currentGroupRate: number
   tokenName: string
   tokenHash: string
   source: string
@@ -409,6 +482,7 @@ interface TableRow {
   unallocatedUpstreamUsedRMB: number
   account: Account | null
   child: UpstreamRealAccountSummary | null
+  groupBreakdown: UpstreamRealGroupSummary | null
   pool: UpstreamRealPoolSummary | null
 }
 
@@ -428,6 +502,8 @@ const tableData = computed<TableRow[]>(() => {
       providerType: pool.provider_type,
       baseUrl: pool.base_url,
       accountCount: pool.account_count,
+      groupId: 0,
+      currentGroupRate: 0,
       tokenName: '',
       tokenHash: '',
       source: '',
@@ -446,6 +522,7 @@ const tableData = computed<TableRow[]>(() => {
       unallocatedUpstreamUsedRMB: pool.unallocated_upstream_used_rmb,
       account: null,
       child: null,
+      groupBreakdown: null,
       pool,
     })
     for (const child of pool.accounts || []) {
@@ -456,6 +533,8 @@ const tableData = computed<TableRow[]>(() => {
         providerType: child.provider_type,
         baseUrl: child.base_url,
         accountCount: 1,
+        groupId: 0,
+        currentGroupRate: 0,
         tokenName: child.token_name,
         tokenHash: child.token_hash,
         source: child.source,
@@ -474,8 +553,41 @@ const tableData = computed<TableRow[]>(() => {
         unallocatedUpstreamUsedRMB: 0,
         account: accountByID.value.get(child.account_id) || null,
         child,
+        groupBreakdown: null,
         pool,
       })
+      for (const group of child.groups || []) {
+        rows.push({
+          id: `account-${child.account_id}-group-${group.group_id}`,
+          rowType: 'group',
+          name: group.group_name,
+          providerType: child.provider_type,
+          baseUrl: child.account_name,
+          accountCount: 1,
+          groupId: group.group_id,
+          currentGroupRate: group.current_group_rate,
+          tokenName: '',
+          tokenHash: '',
+          source: 'group_allocation',
+          remoteStatus: 'allocated',
+          error: '',
+          requests: group.requests,
+          totalTokens: group.total_tokens,
+          upstreamUsedRMB: group.allocated_upstream_used_rmb,
+          upstreamRemainingRMB: 0,
+          upstreamUsedUSD: group.allocated_upstream_used_rmb,
+          downstreamRevenueRMB: group.downstream_revenue_rmb,
+          profitRMB: group.profit_rmb,
+          upstreamConfiguredRate: child.upstream_configured_rate,
+          upstreamEffectiveRate: child.upstream_effective_rate,
+          downstreamEffectiveRate: group.downstream_effective_rate,
+          unallocatedUpstreamUsedRMB: 0,
+          account: accountByID.value.get(child.account_id) || null,
+          child,
+          groupBreakdown: group,
+          pool,
+        })
+      }
     }
   }
   return rows
@@ -515,6 +627,8 @@ const detailTrend = computed(() => {
   }))
 })
 
+const detailGroupBreakdown = computed(() => detailChild.value?.groups || [])
+
 const modelBreakdown = computed(() => {
   const models = detailChild.value?.models || []
   if (models.length === 0) return []
@@ -548,6 +662,7 @@ function providerLabel(provider: string): string {
 
 function statusLabel(status: string): string {
   if (status === 'ok') return '真实'
+  if (status === 'allocated') return '分摊'
   if (status === 'partial') return '部分'
   if (status === 'error') return '错误'
   return status || '—'
@@ -555,6 +670,7 @@ function statusLabel(status: string): string {
 
 function statusClass(status: string): string {
   if (status === 'ok') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+  if (status === 'allocated') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
   if (status === 'partial') return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
   return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
 }
@@ -564,10 +680,12 @@ function sourceLabel(source: string): string {
   if (source === 'account_total') return '账号总量'
   if (source === 'unallocated') return '未拆分'
   if (source === 'token_error') return 'Key 拉取失败'
+  if (source === 'group_allocation') return '按账号标准成本分摊'
   return source || '—'
 }
 
 onMounted(async () => {
-  await Promise.all([loadAccounts(), fetchAllChannelCosts()])
+  loadCachedRealSummary()
+  await Promise.all([loadAccounts(), fetchAllChannelCosts(false)])
 })
 </script>
