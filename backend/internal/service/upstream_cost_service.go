@@ -42,84 +42,108 @@ type UpstreamCostLocalSummary struct {
 }
 
 type UpstreamCostTotals struct {
-	Requests     int64   `json:"requests"`
-	TotalTokens  int64   `json:"total_tokens"`
-	StandardCost float64 `json:"standard_cost"`
-	UpstreamCost float64 `json:"upstream_cost"`
-	UserCost     float64 `json:"user_cost"`
-	Profit       float64 `json:"profit"`
+	Requests               int64   `json:"requests"`
+	TotalTokens            int64   `json:"total_tokens"`
+	StandardCost           float64 `json:"standard_cost"`
+	UpstreamCost           float64 `json:"upstream_cost"`
+	UserCost               float64 `json:"user_cost"`
+	DownstreamRevenueRMB   float64 `json:"downstream_revenue_rmb"`
+	BalanceRevenueRMB      float64 `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost  float64 `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB float64 `json:"subscription_revenue_rmb"`
+	Profit                 float64 `json:"profit"`
 }
 
 type UpstreamCostPoolSummary struct {
-	PoolKey      string                       `json:"pool_key"`
-	PoolName     string                       `json:"pool_name"`
-	ProviderType string                       `json:"provider_type"`
-	BaseURL      string                       `json:"base_url"`
-	AccountCount int                          `json:"account_count"`
-	AccountIDs   []int64                      `json:"account_ids"`
-	Requests     int64                        `json:"requests"`
-	TotalTokens  int64                        `json:"total_tokens"`
-	StandardCost float64                      `json:"standard_cost"`
-	UpstreamCost float64                      `json:"upstream_cost"`
-	UserCost     float64                      `json:"user_cost"`
-	Profit       float64                      `json:"profit"`
-	Trend        []UpstreamCostTrendPoint     `json:"trend"`
-	Models       []UpstreamCostModelBreakdown `json:"models"`
-	Accounts     []UpstreamCostAccountSummary `json:"accounts"`
+	PoolKey                string                       `json:"pool_key"`
+	PoolName               string                       `json:"pool_name"`
+	ProviderType           string                       `json:"provider_type"`
+	BaseURL                string                       `json:"base_url"`
+	AccountCount           int                          `json:"account_count"`
+	AccountIDs             []int64                      `json:"account_ids"`
+	Requests               int64                        `json:"requests"`
+	TotalTokens            int64                        `json:"total_tokens"`
+	StandardCost           float64                      `json:"standard_cost"`
+	UpstreamCost           float64                      `json:"upstream_cost"`
+	UserCost               float64                      `json:"user_cost"`
+	DownstreamRevenueRMB   float64                      `json:"downstream_revenue_rmb"`
+	BalanceRevenueRMB      float64                      `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost  float64                      `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB float64                      `json:"subscription_revenue_rmb"`
+	Profit                 float64                      `json:"profit"`
+	Trend                  []UpstreamCostTrendPoint     `json:"trend"`
+	Models                 []UpstreamCostModelBreakdown `json:"models"`
+	Accounts               []UpstreamCostAccountSummary `json:"accounts"`
 }
 
 type UpstreamCostAccountSummary struct {
-	AccountID      int64                        `json:"account_id"`
-	AccountName    string                       `json:"account_name"`
-	Platform       string                       `json:"platform"`
-	Status         string                       `json:"status"`
-	GroupIDs       []int64                      `json:"group_ids"`
-	RateMultiplier float64                      `json:"rate_multiplier"`
-	ProviderType   string                       `json:"provider_type"`
-	BaseURL        string                       `json:"base_url"`
-	PoolKey        string                       `json:"pool_key"`
-	PoolName       string                       `json:"pool_name"`
-	Requests       int64                        `json:"requests"`
-	TotalTokens    int64                        `json:"total_tokens"`
-	StandardCost   float64                      `json:"standard_cost"`
-	UpstreamCost   float64                      `json:"upstream_cost"`
-	UserCost       float64                      `json:"user_cost"`
-	Profit         float64                      `json:"profit"`
-	Groups         []UpstreamCostGroupBreakdown `json:"groups"`
-	Trend          []UpstreamCostTrendPoint     `json:"trend"`
-	Models         []UpstreamCostModelBreakdown `json:"models"`
+	AccountID              int64                        `json:"account_id"`
+	AccountName            string                       `json:"account_name"`
+	Platform               string                       `json:"platform"`
+	Status                 string                       `json:"status"`
+	GroupIDs               []int64                      `json:"group_ids"`
+	RateMultiplier         float64                      `json:"rate_multiplier"`
+	ProviderType           string                       `json:"provider_type"`
+	BaseURL                string                       `json:"base_url"`
+	PoolKey                string                       `json:"pool_key"`
+	PoolName               string                       `json:"pool_name"`
+	Requests               int64                        `json:"requests"`
+	TotalTokens            int64                        `json:"total_tokens"`
+	StandardCost           float64                      `json:"standard_cost"`
+	UpstreamCost           float64                      `json:"upstream_cost"`
+	UserCost               float64                      `json:"user_cost"`
+	DownstreamRevenueRMB   float64                      `json:"downstream_revenue_rmb"`
+	BalanceRevenueRMB      float64                      `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost  float64                      `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB float64                      `json:"subscription_revenue_rmb"`
+	Profit                 float64                      `json:"profit"`
+	Groups                 []UpstreamCostGroupBreakdown `json:"groups"`
+	Trend                  []UpstreamCostTrendPoint     `json:"trend"`
+	Models                 []UpstreamCostModelBreakdown `json:"models"`
 }
 
 type UpstreamCostGroupBreakdown struct {
-	GroupID          int64   `json:"group_id"`
-	GroupName        string  `json:"group_name"`
-	CurrentGroupRate float64 `json:"current_group_rate"`
-	Requests         int64   `json:"requests"`
-	TotalTokens      int64   `json:"total_tokens"`
-	StandardCost     float64 `json:"standard_cost"`
-	UpstreamCost     float64 `json:"upstream_cost"`
-	UserCost         float64 `json:"user_cost"`
+	GroupID                int64   `json:"group_id"`
+	GroupName              string  `json:"group_name"`
+	CurrentGroupRate       float64 `json:"current_group_rate"`
+	Requests               int64   `json:"requests"`
+	TotalTokens            int64   `json:"total_tokens"`
+	StandardCost           float64 `json:"standard_cost"`
+	UpstreamCost           float64 `json:"upstream_cost"`
+	UserCost               float64 `json:"user_cost"`
+	DownstreamRevenueRMB   float64 `json:"downstream_revenue_rmb"`
+	BalanceRevenueRMB      float64 `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost  float64 `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB float64 `json:"subscription_revenue_rmb"`
 }
 
 type UpstreamCostTrendPoint struct {
-	Date         string  `json:"date"`
-	Requests     int64   `json:"requests"`
-	InputTokens  int64   `json:"input_tokens"`
-	OutputTokens int64   `json:"output_tokens"`
-	CacheTokens  int64   `json:"cache_tokens"`
-	TotalTokens  int64   `json:"total_tokens"`
-	StandardCost float64 `json:"standard_cost"`
-	UpstreamCost float64 `json:"upstream_cost"`
-	UserCost     float64 `json:"user_cost"`
+	Date                   string  `json:"date"`
+	Requests               int64   `json:"requests"`
+	InputTokens            int64   `json:"input_tokens"`
+	OutputTokens           int64   `json:"output_tokens"`
+	CacheTokens            int64   `json:"cache_tokens"`
+	TotalTokens            int64   `json:"total_tokens"`
+	StandardCost           float64 `json:"standard_cost"`
+	UpstreamCost           float64 `json:"upstream_cost"`
+	UserCost               float64 `json:"user_cost"`
+	DownstreamRevenueRMB   float64 `json:"downstream_revenue_rmb"`
+	BalanceRevenueRMB      float64 `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost  float64 `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB float64 `json:"subscription_revenue_rmb"`
 }
 
 type UpstreamCostModelBreakdown struct {
-	Model        string  `json:"model"`
-	Requests     int64   `json:"requests"`
-	TotalTokens  int64   `json:"total_tokens"`
-	StandardCost float64 `json:"standard_cost"`
-	UpstreamCost float64 `json:"upstream_cost"`
-	UserCost     float64 `json:"user_cost"`
+	Model                  string  `json:"model"`
+	Requests               int64   `json:"requests"`
+	TotalTokens            int64   `json:"total_tokens"`
+	StandardCost           float64 `json:"standard_cost"`
+	UpstreamCost           float64 `json:"upstream_cost"`
+	UserCost               float64 `json:"user_cost"`
+	DownstreamRevenueRMB   float64 `json:"downstream_revenue_rmb"`
+	BalanceRevenueRMB      float64 `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost  float64 `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB float64 `json:"subscription_revenue_rmb"`
 }
 
 type UpstreamCostProviderConfig struct {
@@ -141,14 +165,18 @@ type UpstreamCostConfiguredAccount struct {
 }
 
 type upstreamCostStats struct {
-	Requests     int64
-	InputTokens  int64
-	OutputTokens int64
-	CacheTokens  int64
-	TotalTokens  int64
-	StandardCost float64
-	UpstreamCost float64
-	UserCost     float64
+	Requests               int64
+	InputTokens            int64
+	OutputTokens           int64
+	CacheTokens            int64
+	TotalTokens            int64
+	StandardCost           float64
+	UpstreamCost           float64
+	UserCost               float64
+	DownstreamRevenueRMB   float64
+	BalanceRevenueRMB      float64
+	SubscriptionQuotaCost  float64
+	SubscriptionRevenueRMB float64
 }
 
 // GetLocalSummary aggregates local usage logs by upstream quota pool.
@@ -160,6 +188,10 @@ type upstreamCostStats struct {
 // UserCost is downstream billing perspective:
 //
 //	SUM(actual_cost)
+//
+// DownstreamRevenueRMB is the RMB revenue perspective used for profit:
+// balance billing is 1:1, while subscription billing is converted by the
+// matched paid order rate or the current group plan price divided by its quota.
 func (s *UpstreamCostService) GetLocalSummary(ctx context.Context, startTime, endTime time.Time) (*UpstreamCostLocalSummary, error) {
 	configuredAccounts, err := s.GetConfiguredAccountSummaries(ctx, startTime, endTime)
 	if err != nil {
@@ -198,7 +230,11 @@ func (s *UpstreamCostService) GetLocalSummary(ctx context.Context, startTime, en
 		pool.StandardCost += accountSummary.StandardCost
 		pool.UpstreamCost += accountSummary.UpstreamCost
 		pool.UserCost += accountSummary.UserCost
-		pool.Profit = pool.UserCost - pool.UpstreamCost
+		pool.DownstreamRevenueRMB += accountSummary.DownstreamRevenueRMB
+		pool.BalanceRevenueRMB += accountSummary.BalanceRevenueRMB
+		pool.SubscriptionQuotaCost += accountSummary.SubscriptionQuotaCost
+		pool.SubscriptionRevenueRMB += accountSummary.SubscriptionRevenueRMB
+		pool.Profit = pool.DownstreamRevenueRMB - pool.UpstreamCost
 	}
 
 	out := &UpstreamCostLocalSummary{
@@ -223,8 +259,12 @@ func (s *UpstreamCostService) GetLocalSummary(ctx context.Context, startTime, en
 		out.Totals.StandardCost += pool.StandardCost
 		out.Totals.UpstreamCost += pool.UpstreamCost
 		out.Totals.UserCost += pool.UserCost
+		out.Totals.DownstreamRevenueRMB += pool.DownstreamRevenueRMB
+		out.Totals.BalanceRevenueRMB += pool.BalanceRevenueRMB
+		out.Totals.SubscriptionQuotaCost += pool.SubscriptionQuotaCost
+		out.Totals.SubscriptionRevenueRMB += pool.SubscriptionRevenueRMB
 	}
-	out.Totals.Profit = out.Totals.UserCost - out.Totals.UpstreamCost
+	out.Totals.Profit = out.Totals.DownstreamRevenueRMB - out.Totals.UpstreamCost
 	sort.Slice(out.Pools, func(i, j int) bool {
 		if out.Pools[i].UpstreamCost == out.Pools[j].UpstreamCost {
 			return out.Pools[i].PoolName < out.Pools[j].PoolName
@@ -289,25 +329,29 @@ func (s *UpstreamCostService) GetConfiguredAccountSummaries(ctx context.Context,
 		cfg := cfgByID[accountID]
 		stats := statsByAccount[accountID]
 		summary := UpstreamCostAccountSummary{
-			AccountID:      account.ID,
-			AccountName:    account.Name,
-			Platform:       account.Platform,
-			Status:         account.Status,
-			GroupIDs:       append([]int64(nil), account.GroupIDs...),
-			RateMultiplier: account.BillingRateMultiplier(),
-			ProviderType:   cfg.ProviderType,
-			BaseURL:        cfg.BaseURL,
-			PoolKey:        cfg.PoolKey,
-			PoolName:       cfg.PoolName,
-			Requests:       stats.Requests,
-			TotalTokens:    stats.TotalTokens,
-			StandardCost:   stats.StandardCost,
-			UpstreamCost:   stats.UpstreamCost,
-			UserCost:       stats.UserCost,
-			Profit:         stats.UserCost - stats.UpstreamCost,
-			Groups:         groupsByAccount[accountID],
-			Trend:          trendByAccount[accountID],
-			Models:         modelsByAccount[accountID],
+			AccountID:              account.ID,
+			AccountName:            account.Name,
+			Platform:               account.Platform,
+			Status:                 account.Status,
+			GroupIDs:               append([]int64(nil), account.GroupIDs...),
+			RateMultiplier:         account.BillingRateMultiplier(),
+			ProviderType:           cfg.ProviderType,
+			BaseURL:                cfg.BaseURL,
+			PoolKey:                cfg.PoolKey,
+			PoolName:               cfg.PoolName,
+			Requests:               stats.Requests,
+			TotalTokens:            stats.TotalTokens,
+			StandardCost:           stats.StandardCost,
+			UpstreamCost:           stats.UpstreamCost,
+			UserCost:               stats.UserCost,
+			DownstreamRevenueRMB:   stats.DownstreamRevenueRMB,
+			BalanceRevenueRMB:      stats.BalanceRevenueRMB,
+			SubscriptionQuotaCost:  stats.SubscriptionQuotaCost,
+			SubscriptionRevenueRMB: stats.SubscriptionRevenueRMB,
+			Profit:                 stats.DownstreamRevenueRMB - stats.UpstreamCost,
+			Groups:                 groupsByAccount[accountID],
+			Trend:                  trendByAccount[accountID],
+			Models:                 modelsByAccount[accountID],
 		}
 		out = append(out, UpstreamCostConfiguredAccount{
 			Account: account,
@@ -430,8 +474,97 @@ func upstreamCostPoolIdentity(account Account, cfg map[string]any, providerType 
 	return "identity:" + hex.EncodeToString(sum[:])[:12]
 }
 
+const usageCostRevenueCTE = `
+WITH usage_costs AS (
+	SELECT
+		ul.*,
+		CASE
+			WHEN COALESCE(ul.billing_type, 0) = 1 THEN 0
+			ELSE COALESCE(ul.actual_cost, 0)
+		END AS balance_revenue_rmb,
+		CASE
+			WHEN COALESCE(ul.billing_type, 0) = 1 THEN COALESCE(ul.actual_cost, 0)
+			ELSE 0
+		END AS subscription_quota_cost,
+		CASE
+			WHEN COALESCE(ul.billing_type, 0) = 1
+			THEN COALESCE(ul.actual_cost, 0) * COALESCE(order_rate.revenue_rate, plan_rate.revenue_rate, 0)
+			ELSE 0
+		END AS subscription_revenue_rmb,
+		CASE
+			WHEN COALESCE(ul.billing_type, 0) = 1
+			THEN COALESCE(ul.actual_cost, 0) * COALESCE(order_rate.revenue_rate, plan_rate.revenue_rate, 0)
+			ELSE COALESCE(ul.actual_cost, 0)
+		END AS downstream_revenue_rmb
+	FROM usage_logs ul
+	LEFT JOIN LATERAL (
+		SELECT po.pay_amount / NULLIF(order_quota.quota, 0) AS revenue_rate
+		FROM payment_orders po
+		JOIN groups order_group ON order_group.id = po.subscription_group_id AND order_group.deleted_at IS NULL
+		CROSS JOIN LATERAL (
+			SELECT GREATEST(COALESCE(po.subscription_days, 30), 1)::numeric AS days
+		) order_days
+		LEFT JOIN LATERAL (
+			SELECT MIN(q) AS quota
+			FROM unnest(ARRAY[
+				CASE WHEN order_group.daily_limit_usd IS NOT NULL THEN order_group.daily_limit_usd * order_days.days END,
+				CASE WHEN order_group.weekly_limit_usd IS NOT NULL THEN order_group.weekly_limit_usd * CEIL(order_days.days / 7.0) END,
+				CASE WHEN order_group.monthly_limit_usd IS NOT NULL THEN order_group.monthly_limit_usd * CEIL(order_days.days / 30.0) END
+			]) AS q
+			WHERE q IS NOT NULL AND q > 0
+		) order_quota ON TRUE
+		WHERE COALESCE(ul.billing_type, 0) = 1
+			AND po.order_type = 'subscription'
+			AND UPPER(po.status) = 'COMPLETED'
+			AND po.user_id = ul.user_id
+			AND po.subscription_group_id = ul.group_id
+			AND po.completed_at IS NOT NULL
+			AND po.completed_at <= ul.created_at
+			AND ul.created_at < po.completed_at + (order_days.days::int * INTERVAL '1 day')
+			AND order_quota.quota > 0
+		ORDER BY po.completed_at DESC, po.id DESC
+		LIMIT 1
+	) order_rate ON TRUE
+	LEFT JOIN LATERAL (
+		SELECT sp.price / NULLIF(plan_quota.quota, 0) AS revenue_rate
+		FROM subscription_plans sp
+		JOIN groups plan_group ON plan_group.id = sp.group_id AND plan_group.deleted_at IS NULL
+		CROSS JOIN LATERAL (
+			SELECT GREATEST(
+				CASE LOWER(COALESCE(sp.validity_unit, 'days'))
+					WHEN 'week' THEN sp.validity_days * 7
+					WHEN 'weeks' THEN sp.validity_days * 7
+					WHEN 'month' THEN sp.validity_days * 30
+					WHEN 'months' THEN sp.validity_days * 30
+					WHEN 'year' THEN sp.validity_days * 365
+					WHEN 'years' THEN sp.validity_days * 365
+					ELSE sp.validity_days
+				END,
+				1
+			)::numeric AS days
+		) plan_days
+		LEFT JOIN LATERAL (
+			SELECT MIN(q) AS quota
+			FROM unnest(ARRAY[
+				CASE WHEN plan_group.daily_limit_usd IS NOT NULL THEN plan_group.daily_limit_usd * plan_days.days END,
+				CASE WHEN plan_group.weekly_limit_usd IS NOT NULL THEN plan_group.weekly_limit_usd * CEIL(plan_days.days / 7.0) END,
+				CASE WHEN plan_group.monthly_limit_usd IS NOT NULL THEN plan_group.monthly_limit_usd * CEIL(plan_days.days / 30.0) END
+			]) AS q
+			WHERE q IS NOT NULL AND q > 0
+		) plan_quota ON TRUE
+		WHERE COALESCE(ul.billing_type, 0) = 1
+			AND sp.group_id = ul.group_id
+			AND sp.for_sale = TRUE
+			AND plan_quota.quota > 0
+		ORDER BY sp.sort_order ASC, sp.id ASC
+		LIMIT 1
+	) plan_rate ON TRUE
+	WHERE ul.created_at >= $1 AND ul.created_at < $2 AND ul.account_id = ANY($3)
+)
+`
+
 func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, endTime time.Time, accountIDs []int64) (map[int64]upstreamCostStats, error) {
-	query := `
+	query := usageCostRevenueCTE + `
 		SELECT
 			account_id,
 			COUNT(*) AS requests,
@@ -441,9 +574,12 @@ func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, 
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
 			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
-			COALESCE(SUM(actual_cost), 0) AS user_cost
-		FROM usage_logs
-		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
+			COALESCE(SUM(actual_cost), 0) AS user_cost,
+			COALESCE(SUM(downstream_revenue_rmb), 0) AS downstream_revenue_rmb,
+			COALESCE(SUM(balance_revenue_rmb), 0) AS balance_revenue_rmb,
+			COALESCE(SUM(subscription_quota_cost), 0) AS subscription_quota_cost,
+			COALESCE(SUM(subscription_revenue_rmb), 0) AS subscription_revenue_rmb
+		FROM usage_costs
 		GROUP BY account_id
 	`
 	rows, err := s.db.QueryContext(ctx, query, startTime, endTime, pq.Array(accountIDs))
@@ -466,6 +602,10 @@ func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, 
 			&stats.StandardCost,
 			&stats.UpstreamCost,
 			&stats.UserCost,
+			&stats.DownstreamRevenueRMB,
+			&stats.BalanceRevenueRMB,
+			&stats.SubscriptionQuotaCost,
+			&stats.SubscriptionRevenueRMB,
 		); err != nil {
 			return nil, err
 		}
@@ -478,7 +618,7 @@ func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, 
 }
 
 func (s *UpstreamCostService) queryAccountGroupStats(ctx context.Context, startTime, endTime time.Time, accountIDs []int64) (map[int64][]UpstreamCostGroupBreakdown, error) {
-	query := `
+	query := usageCostRevenueCTE + `
 		SELECT
 			ul.account_id,
 			COALESCE(ul.group_id, 0) AS group_id,
@@ -488,10 +628,13 @@ func (s *UpstreamCostService) queryAccountGroupStats(ctx context.Context, startT
 			COALESCE(SUM(ul.input_tokens + ul.output_tokens + ul.cache_creation_tokens + ul.cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(ul.total_cost), 0) AS standard_cost,
 			COALESCE(SUM(COALESCE(ul.account_stats_cost, ul.total_cost) * COALESCE(ul.account_rate_multiplier, 1)), 0) AS upstream_cost,
-			COALESCE(SUM(ul.actual_cost), 0) AS user_cost
-		FROM usage_logs ul
+			COALESCE(SUM(ul.actual_cost), 0) AS user_cost,
+			COALESCE(SUM(ul.downstream_revenue_rmb), 0) AS downstream_revenue_rmb,
+			COALESCE(SUM(ul.balance_revenue_rmb), 0) AS balance_revenue_rmb,
+			COALESCE(SUM(ul.subscription_quota_cost), 0) AS subscription_quota_cost,
+			COALESCE(SUM(ul.subscription_revenue_rmb), 0) AS subscription_revenue_rmb
+		FROM usage_costs ul
 		LEFT JOIN groups g ON g.id = ul.group_id
-		WHERE ul.created_at >= $1 AND ul.created_at < $2 AND ul.account_id = ANY($3)
 		GROUP BY ul.account_id, ul.group_id, g.name, g.rate_multiplier
 		ORDER BY ul.account_id ASC, user_cost DESC, group_name ASC
 	`
@@ -515,6 +658,10 @@ func (s *UpstreamCostService) queryAccountGroupStats(ctx context.Context, startT
 			&item.StandardCost,
 			&item.UpstreamCost,
 			&item.UserCost,
+			&item.DownstreamRevenueRMB,
+			&item.BalanceRevenueRMB,
+			&item.SubscriptionQuotaCost,
+			&item.SubscriptionRevenueRMB,
 		); err != nil {
 			return nil, err
 		}
@@ -527,7 +674,7 @@ func (s *UpstreamCostService) queryAccountGroupStats(ctx context.Context, startT
 }
 
 func (s *UpstreamCostService) queryAccountTrend(ctx context.Context, startTime, endTime time.Time, accountIDs []int64) (map[int64][]UpstreamCostTrendPoint, error) {
-	query := `
+	query := usageCostRevenueCTE + `
 		SELECT
 			account_id,
 			TO_CHAR(created_at, 'YYYY-MM-DD') AS date,
@@ -538,9 +685,12 @@ func (s *UpstreamCostService) queryAccountTrend(ctx context.Context, startTime, 
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
 			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
-			COALESCE(SUM(actual_cost), 0) AS user_cost
-		FROM usage_logs
-		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
+			COALESCE(SUM(actual_cost), 0) AS user_cost,
+			COALESCE(SUM(downstream_revenue_rmb), 0) AS downstream_revenue_rmb,
+			COALESCE(SUM(balance_revenue_rmb), 0) AS balance_revenue_rmb,
+			COALESCE(SUM(subscription_quota_cost), 0) AS subscription_quota_cost,
+			COALESCE(SUM(subscription_revenue_rmb), 0) AS subscription_revenue_rmb
+		FROM usage_costs
 		GROUP BY account_id, date
 		ORDER BY date ASC
 	`
@@ -565,6 +715,10 @@ func (s *UpstreamCostService) queryAccountTrend(ctx context.Context, startTime, 
 			&point.StandardCost,
 			&point.UpstreamCost,
 			&point.UserCost,
+			&point.DownstreamRevenueRMB,
+			&point.BalanceRevenueRMB,
+			&point.SubscriptionQuotaCost,
+			&point.SubscriptionRevenueRMB,
 		); err != nil {
 			return nil, err
 		}
@@ -577,7 +731,7 @@ func (s *UpstreamCostService) queryAccountTrend(ctx context.Context, startTime, 
 }
 
 func (s *UpstreamCostService) queryAccountModels(ctx context.Context, startTime, endTime time.Time, accountIDs []int64) (map[int64][]UpstreamCostModelBreakdown, error) {
-	query := `
+	query := usageCostRevenueCTE + `
 		SELECT
 			account_id,
 			COALESCE(NULLIF(requested_model, ''), NULLIF(model, ''), 'unknown') AS model_name,
@@ -585,9 +739,12 @@ func (s *UpstreamCostService) queryAccountModels(ctx context.Context, startTime,
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
 			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
-			COALESCE(SUM(actual_cost), 0) AS user_cost
-		FROM usage_logs
-		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
+			COALESCE(SUM(actual_cost), 0) AS user_cost,
+			COALESCE(SUM(downstream_revenue_rmb), 0) AS downstream_revenue_rmb,
+			COALESCE(SUM(balance_revenue_rmb), 0) AS balance_revenue_rmb,
+			COALESCE(SUM(subscription_quota_cost), 0) AS subscription_quota_cost,
+			COALESCE(SUM(subscription_revenue_rmb), 0) AS subscription_revenue_rmb
+		FROM usage_costs
 		GROUP BY account_id, COALESCE(NULLIF(requested_model, ''), NULLIF(model, ''), 'unknown')
 		ORDER BY upstream_cost DESC
 	`
@@ -609,6 +766,10 @@ func (s *UpstreamCostService) queryAccountModels(ctx context.Context, startTime,
 			&item.StandardCost,
 			&item.UpstreamCost,
 			&item.UserCost,
+			&item.DownstreamRevenueRMB,
+			&item.BalanceRevenueRMB,
+			&item.SubscriptionQuotaCost,
+			&item.SubscriptionRevenueRMB,
 		); err != nil {
 			return nil, err
 		}
@@ -638,6 +799,10 @@ func mergeUpstreamCostTrend(accounts []UpstreamCostAccountSummary) []UpstreamCos
 			merged.StandardCost += point.StandardCost
 			merged.UpstreamCost += point.UpstreamCost
 			merged.UserCost += point.UserCost
+			merged.DownstreamRevenueRMB += point.DownstreamRevenueRMB
+			merged.BalanceRevenueRMB += point.BalanceRevenueRMB
+			merged.SubscriptionQuotaCost += point.SubscriptionQuotaCost
+			merged.SubscriptionRevenueRMB += point.SubscriptionRevenueRMB
 		}
 	}
 	out := make([]UpstreamCostTrendPoint, 0, len(byDate))
@@ -663,6 +828,10 @@ func mergeUpstreamCostModels(accounts []UpstreamCostAccountSummary) []UpstreamCo
 			merged.StandardCost += item.StandardCost
 			merged.UpstreamCost += item.UpstreamCost
 			merged.UserCost += item.UserCost
+			merged.DownstreamRevenueRMB += item.DownstreamRevenueRMB
+			merged.BalanceRevenueRMB += item.BalanceRevenueRMB
+			merged.SubscriptionQuotaCost += item.SubscriptionQuotaCost
+			merged.SubscriptionRevenueRMB += item.SubscriptionRevenueRMB
 		}
 	}
 	out := make([]UpstreamCostModelBreakdown, 0, len(byModel))

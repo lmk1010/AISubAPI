@@ -64,6 +64,10 @@ export interface UpstreamCostTotals {
   standard_cost: number
   upstream_cost: number
   user_cost: number
+  downstream_revenue_rmb: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
   profit: number
 }
 
@@ -77,6 +81,10 @@ export interface UpstreamCostTrendPoint {
   standard_cost: number
   upstream_cost: number
   user_cost: number
+  downstream_revenue_rmb: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
 }
 
 export interface UpstreamCostModelBreakdown {
@@ -86,6 +94,10 @@ export interface UpstreamCostModelBreakdown {
   standard_cost: number
   upstream_cost: number
   user_cost: number
+  downstream_revenue_rmb: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
 }
 
 export interface UpstreamCostAccountSummary {
@@ -104,6 +116,10 @@ export interface UpstreamCostAccountSummary {
   standard_cost: number
   upstream_cost: number
   user_cost: number
+  downstream_revenue_rmb: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
   profit: number
   groups: UpstreamCostGroupBreakdown[]
   trend: UpstreamCostTrendPoint[]
@@ -119,6 +135,10 @@ export interface UpstreamCostGroupBreakdown {
   standard_cost: number
   upstream_cost: number
   user_cost: number
+  downstream_revenue_rmb: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
 }
 
 export interface UpstreamCostPoolSummary {
@@ -133,6 +153,10 @@ export interface UpstreamCostPoolSummary {
   standard_cost: number
   upstream_cost: number
   user_cost: number
+  downstream_revenue_rmb: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
   profit: number
   trend: UpstreamCostTrendPoint[]
   models: UpstreamCostModelBreakdown[]
@@ -153,6 +177,10 @@ export interface UpstreamRealSummaryTotals {
   total_tokens: number
   standard_cost: number
   downstream_revenue_rmb: number
+  downstream_usage_quota: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
   local_account_cost_rmb: number
   upstream_used_rmb: number
   allocated_upstream_used_rmb: number
@@ -178,6 +206,10 @@ export interface UpstreamRealAccountSummary {
   total_tokens: number
   standard_cost: number
   downstream_revenue_rmb: number
+  downstream_usage_quota: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
   local_account_cost_rmb: number
   upstream_used_rmb: number
   upstream_remaining_rmb: number
@@ -204,6 +236,10 @@ export interface UpstreamRealGroupSummary {
   total_tokens: number
   standard_cost: number
   downstream_revenue_rmb: number
+  downstream_usage_quota: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
   local_account_cost_rmb: number
   allocated_upstream_used_rmb: number
   profit_rmb: number
@@ -221,6 +257,10 @@ export interface UpstreamRealPoolSummary {
   total_tokens: number
   standard_cost: number
   downstream_revenue_rmb: number
+  downstream_usage_quota: number
+  balance_revenue_rmb: number
+  subscription_quota_cost: number
+  subscription_revenue_rmb: number
   local_account_cost_rmb: number
   upstream_used_rmb: number
   allocated_upstream_used_rmb: number

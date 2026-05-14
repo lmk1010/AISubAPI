@@ -15,7 +15,10 @@
               上游累计消耗 {{ money(realSummary.totals.upstream_used_rmb) }} / 剩余 {{ money(realSummary.totals.upstream_remaining_rmb) }}
             </span>
             <span v-if="realSummary" class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-              用户累计扣费 {{ money(realSummary.totals.downstream_revenue_rmb) }}
+              下游折算收入 {{ money(realSummary.totals.downstream_revenue_rmb) }}
+            </span>
+            <span v-if="realSummary" class="inline-flex items-center gap-1.5 rounded-full bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-600 dark:bg-dark-700 dark:text-slate-300">
+              额度消耗 {{ money(realSummary.totals.downstream_usage_quota) }}
             </span>
             <span
               v-if="realSummary && realSummary.totals.unallocated_upstream_used_rmb > 0.000001"
@@ -95,6 +98,9 @@
 
           <template #cell-downstream_revenue_rmb="{ row }">
             <span class="font-medium text-blue-600 dark:text-blue-400">{{ money(row.downstreamRevenueRMB) }}</span>
+            <span v-if="row.subscriptionQuotaCost > 0.000001" class="ml-1 text-[10px] text-gray-400">
+              额度 {{ money(row.downstreamUsageQuota) }}
+            </span>
           </template>
 
           <template #cell-profit_rmb="{ row }">
@@ -235,8 +241,9 @@
             <p class="text-base font-bold text-emerald-600 dark:text-emerald-400">{{ money(detailChild.upstream_remaining_rmb, 4) }}</p>
           </div>
           <div class="rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
-            <p class="text-[10px] text-blue-500">用户实际扣费</p>
+            <p class="text-[10px] text-blue-500">下游折算收入</p>
             <p class="text-base font-bold text-blue-600 dark:text-blue-400">{{ money(detailChild.downstream_revenue_rmb, 4) }}</p>
+            <p class="text-[10px] text-blue-400">额度 {{ money(detailChild.downstream_usage_quota, 4) }}</p>
           </div>
           <div class="rounded-lg p-3" :class="detailChild.profit_rmb >= 0 ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'">
             <p class="text-[10px]" :class="detailChild.profit_rmb >= 0 ? 'text-emerald-500' : 'text-red-500'">盈亏</p>
@@ -262,7 +269,7 @@
                 <th class="px-3 py-2">当前倍率</th>
                 <th class="px-3 py-2">历史实扣</th>
                 <th class="px-3 py-2">上游分摊</th>
-                <th class="px-3 py-2">用户扣费</th>
+                <th class="px-3 py-2">折算收入</th>
                 <th class="px-3 py-2">盈亏</th>
               </tr>
             </thead>
@@ -275,7 +282,10 @@
                 <td class="px-3 py-2">{{ rate(group.current_group_rate) }}</td>
                 <td class="px-3 py-2 text-blue-600 dark:text-blue-400">{{ rate(group.downstream_effective_rate) }}</td>
                 <td class="px-3 py-2 text-red-600 dark:text-red-400">{{ money(group.allocated_upstream_used_rmb, 4) }}</td>
-                <td class="px-3 py-2 text-blue-600 dark:text-blue-400">{{ money(group.downstream_revenue_rmb, 4) }}</td>
+                <td class="px-3 py-2 text-blue-600 dark:text-blue-400">
+                  {{ money(group.downstream_revenue_rmb, 4) }}
+                  <div v-if="group.subscription_quota_cost > 0.000001" class="text-[10px] text-gray-400">额度 {{ money(group.downstream_usage_quota, 4) }}</div>
+                </td>
                 <td class="px-3 py-2 font-semibold" :class="group.profit_rmb >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
                   {{ signedMoney(group.profit_rmb, 4) }}
                 </td>
@@ -285,7 +295,7 @@
         </div>
 
         <div v-if="detailTrend.length > 0" class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
-          <h3 class="mb-3 text-xs font-semibold text-gray-700 dark:text-gray-300">本地扣费趋势</h3>
+          <h3 class="mb-3 text-xs font-semibold text-gray-700 dark:text-gray-300">本地下游收入趋势</h3>
           <div class="flex items-end gap-0.5" style="height: 100px">
             <div v-for="pt in detailTrend" :key="pt.label" class="relative flex flex-1 flex-col items-center justify-end" style="min-width: 0">
               <div class="w-full rounded-t bg-blue-400 transition-all dark:bg-blue-500" :style="{ height: pt.pct + '%', minHeight: pt.val > 0 ? '2px' : '0' }" :title="pt.label + ': ' + money(pt.val, 4)" />
@@ -295,7 +305,7 @@
         </div>
 
         <div v-if="modelBreakdown.length > 0" class="rounded-lg border border-gray-200 p-4 dark:border-dark-600">
-          <h3 class="mb-3 text-xs font-semibold text-gray-700 dark:text-gray-300">本地模型扣费</h3>
+          <h3 class="mb-3 text-xs font-semibold text-gray-700 dark:text-gray-300">本地模型收入</h3>
           <div class="space-y-1.5">
             <div v-for="item in modelBreakdown" :key="item.model" class="flex items-center gap-2">
               <span class="w-40 truncate text-[11px] text-gray-600 dark:text-gray-400" :title="item.model">{{ item.model }}</span>
@@ -475,6 +485,10 @@ interface TableRow {
   upstreamRemainingRMB: number
   upstreamUsedUSD: number
   downstreamRevenueRMB: number
+  downstreamUsageQuota: number
+  balanceRevenueRMB: number
+  subscriptionQuotaCost: number
+  subscriptionRevenueRMB: number
   profitRMB: number
   upstreamConfiguredRate: number
   upstreamEffectiveRate: number
@@ -515,6 +529,10 @@ const tableData = computed<TableRow[]>(() => {
       upstreamRemainingRMB: pool.upstream_remaining_rmb,
       upstreamUsedUSD: pool.upstream_used_usd,
       downstreamRevenueRMB: pool.downstream_revenue_rmb,
+      downstreamUsageQuota: pool.downstream_usage_quota,
+      balanceRevenueRMB: pool.balance_revenue_rmb,
+      subscriptionQuotaCost: pool.subscription_quota_cost,
+      subscriptionRevenueRMB: pool.subscription_revenue_rmb,
       profitRMB: pool.profit_rmb,
       upstreamConfiguredRate: pool.weighted_upstream_account_rate,
       upstreamEffectiveRate: pool.upstream_effective_rate,
@@ -546,6 +564,10 @@ const tableData = computed<TableRow[]>(() => {
         upstreamRemainingRMB: child.upstream_remaining_rmb,
         upstreamUsedUSD: child.upstream_used_usd,
         downstreamRevenueRMB: child.downstream_revenue_rmb,
+        downstreamUsageQuota: child.downstream_usage_quota,
+        balanceRevenueRMB: child.balance_revenue_rmb,
+        subscriptionQuotaCost: child.subscription_quota_cost,
+        subscriptionRevenueRMB: child.subscription_revenue_rmb,
         profitRMB: child.profit_rmb,
         upstreamConfiguredRate: child.upstream_configured_rate,
         upstreamEffectiveRate: child.upstream_effective_rate,
@@ -577,6 +599,10 @@ const tableData = computed<TableRow[]>(() => {
           upstreamRemainingRMB: 0,
           upstreamUsedUSD: group.allocated_upstream_used_rmb,
           downstreamRevenueRMB: group.downstream_revenue_rmb,
+          downstreamUsageQuota: group.downstream_usage_quota,
+          balanceRevenueRMB: group.balance_revenue_rmb,
+          subscriptionQuotaCost: group.subscription_quota_cost,
+          subscriptionRevenueRMB: group.subscription_revenue_rmb,
           profitRMB: group.profit_rmb,
           upstreamConfiguredRate: child.upstream_configured_rate,
           upstreamEffectiveRate: child.upstream_effective_rate,
@@ -599,7 +625,7 @@ const columns = computed(() => [
   { key: 'upstream_used_rmb', label: '上游消耗 ¥' },
   { key: 'upstream_remaining_rmb', label: '上游剩余 ¥' },
   { key: 'upstream_used_usd', label: '消耗 $' },
-  { key: 'downstream_revenue_rmb', label: '用户扣费 ¥' },
+  { key: 'downstream_revenue_rmb', label: '下游收入 ¥' },
   { key: 'profit_rmb', label: '盈亏 ¥' },
   { key: 'rates', label: '倍率对比' },
   { key: 'requests', label: '请求' },
@@ -619,11 +645,11 @@ function openDetailDialog(child: UpstreamRealAccountSummary | null) {
 const detailTrend = computed(() => {
   const trend = detailChild.value?.trend || []
   if (trend.length === 0) return []
-  const maxVal = Math.max(...trend.map(pt => Math.max(pt.user_cost, 0.001)))
+  const maxVal = Math.max(...trend.map(pt => Math.max(pt.downstream_revenue_rmb ?? pt.user_cost, 0.001)))
   return trend.map(pt => ({
     label: pt.date.slice(5),
-    val: pt.user_cost,
-    pct: maxVal > 0 ? (pt.user_cost / maxVal) * 100 : 0,
+    val: pt.downstream_revenue_rmb ?? pt.user_cost,
+    pct: maxVal > 0 ? ((pt.downstream_revenue_rmb ?? pt.user_cost) / maxVal) * 100 : 0,
   }))
 })
 
@@ -632,11 +658,11 @@ const detailGroupBreakdown = computed(() => detailChild.value?.groups || [])
 const modelBreakdown = computed(() => {
   const models = detailChild.value?.models || []
   if (models.length === 0) return []
-  const total = models.reduce((sum, item) => sum + item.user_cost, 0)
+  const total = models.reduce((sum, item) => sum + (item.downstream_revenue_rmb ?? item.user_cost), 0)
   return models.map((item: UpstreamCostModelBreakdown) => ({
     model: item.model,
-    cost: item.user_cost,
-    pct: total > 0 ? (item.user_cost / total) * 100 : 0,
+    cost: item.downstream_revenue_rmb ?? item.user_cost,
+    pct: total > 0 ? ((item.downstream_revenue_rmb ?? item.user_cost) / total) * 100 : 0,
   }))
 })
 

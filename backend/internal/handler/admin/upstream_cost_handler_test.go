@@ -70,8 +70,8 @@ func TestParseNewAPIDataUnwrapsEnvelope(t *testing.T) {
 
 func TestBuildRealGroupCostSummariesAllocatesByStandardCost(t *testing.T) {
 	groups := []service.UpstreamCostGroupBreakdown{
-		{GroupID: 1, GroupName: "default", CurrentGroupRate: 1, Requests: 2, TotalTokens: 200, StandardCost: 80, UserCost: 80},
-		{GroupID: 6, GroupName: "codex-vip-1", CurrentGroupRate: 0.08, Requests: 1, TotalTokens: 100, StandardCost: 20, UserCost: 1.6},
+		{GroupID: 1, GroupName: "default", CurrentGroupRate: 1, Requests: 2, TotalTokens: 200, StandardCost: 80, UserCost: 80, DownstreamRevenueRMB: 80},
+		{GroupID: 6, GroupName: "codex-vip-1", CurrentGroupRate: 0.08, Requests: 1, TotalTokens: 100, StandardCost: 20, UserCost: 1.6, DownstreamRevenueRMB: 1.6},
 	}
 
 	out := buildRealGroupCostSummaries(groups, 100, 50)

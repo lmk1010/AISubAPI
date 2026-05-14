@@ -62,36 +62,40 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 
 	statsRows := sqlmock.NewRows([]string{
 		"account_id", "requests", "input_tokens", "output_tokens", "cache_tokens", "total_tokens", "standard_cost", "upstream_cost", "user_cost",
+		"downstream_revenue_rmb", "balance_revenue_rmb", "subscription_quota_cost", "subscription_revenue_rmb",
 	}).
-		AddRow(int64(1), int64(2), int64(100), int64(50), int64(20), int64(170), 10.0, 12.0, 18.0).
-		AddRow(int64(2), int64(1), int64(80), int64(20), int64(10), int64(110), 5.0, 7.0, 8.0)
+		AddRow(int64(1), int64(2), int64(100), int64(50), int64(20), int64(170), 10.0, 12.0, 18.0, 18.0, 18.0, 0.0, 0.0).
+		AddRow(int64(2), int64(1), int64(80), int64(20), int64(10), int64(110), 5.0, 7.0, 8.0, 8.0, 8.0, 0.0, 0.0)
 	mock.ExpectQuery("SELECT\\s+account_id,\\s+COUNT\\(\\*\\) AS requests").
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(statsRows)
 
 	groupRows := sqlmock.NewRows([]string{
 		"account_id", "group_id", "group_name", "current_group_rate", "requests", "total_tokens", "standard_cost", "upstream_cost", "user_cost",
+		"downstream_revenue_rmb", "balance_revenue_rmb", "subscription_quota_cost", "subscription_revenue_rmb",
 	}).
-		AddRow(int64(1), int64(101), "kiro-vip", 1.8, int64(2), int64(170), 10.0, 12.0, 18.0).
-		AddRow(int64(2), int64(102), "kiro-wholesale", 1.4, int64(1), int64(110), 5.0, 7.0, 8.0)
+		AddRow(int64(1), int64(101), "kiro-vip", 1.8, int64(2), int64(170), 10.0, 12.0, 18.0, 18.0, 18.0, 0.0, 0.0).
+		AddRow(int64(2), int64(102), "kiro-wholesale", 1.4, int64(1), int64(110), 5.0, 7.0, 8.0, 8.0, 8.0, 0.0, 0.0)
 	mock.ExpectQuery("FROM usage_logs ul").
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(groupRows)
 
 	trendRows := sqlmock.NewRows([]string{
 		"account_id", "date", "requests", "input_tokens", "output_tokens", "cache_tokens", "total_tokens", "standard_cost", "upstream_cost", "user_cost",
+		"downstream_revenue_rmb", "balance_revenue_rmb", "subscription_quota_cost", "subscription_revenue_rmb",
 	}).
-		AddRow(int64(1), "2026-05-12", int64(2), int64(100), int64(50), int64(20), int64(170), 10.0, 12.0, 18.0).
-		AddRow(int64(2), "2026-05-12", int64(1), int64(80), int64(20), int64(10), int64(110), 5.0, 7.0, 8.0)
+		AddRow(int64(1), "2026-05-12", int64(2), int64(100), int64(50), int64(20), int64(170), 10.0, 12.0, 18.0, 18.0, 18.0, 0.0, 0.0).
+		AddRow(int64(2), "2026-05-12", int64(1), int64(80), int64(20), int64(10), int64(110), 5.0, 7.0, 8.0, 8.0, 8.0, 0.0, 0.0)
 	mock.ExpectQuery("TO_CHAR\\(created_at, 'YYYY-MM-DD'\\) AS date").
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(trendRows)
 
 	modelRows := sqlmock.NewRows([]string{
 		"account_id", "model_name", "requests", "total_tokens", "standard_cost", "upstream_cost", "user_cost",
+		"downstream_revenue_rmb", "balance_revenue_rmb", "subscription_quota_cost", "subscription_revenue_rmb",
 	}).
-		AddRow(int64(1), "claude-sonnet-4.5", int64(2), int64(170), 10.0, 12.0, 18.0).
-		AddRow(int64(2), "claude-sonnet-4.5", int64(1), int64(110), 5.0, 7.0, 8.0)
+		AddRow(int64(1), "claude-sonnet-4.5", int64(2), int64(170), 10.0, 12.0, 18.0, 18.0, 18.0, 0.0, 0.0).
+		AddRow(int64(2), "claude-sonnet-4.5", int64(1), int64(110), 5.0, 7.0, 8.0, 8.0, 8.0, 0.0, 0.0)
 	mock.ExpectQuery("COALESCE\\(NULLIF\\(requested_model").
 		WithArgs(sqlmock.AnyArg(), sqlmock.AnyArg(), sqlmock.AnyArg()).
 		WillReturnRows(modelRows)
@@ -114,9 +118,12 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 	require.Equal(t, 2, pool.AccountCount)
 	require.InDelta(t, 19.0, pool.UpstreamCost, 0.000001)
 	require.InDelta(t, 26.0, pool.UserCost, 0.000001)
+	require.InDelta(t, 26.0, pool.DownstreamRevenueRMB, 0.000001)
+	require.InDelta(t, 26.0, pool.BalanceRevenueRMB, 0.000001)
 	require.InDelta(t, 7.0, pool.Profit, 0.000001)
 	require.InDelta(t, 19.0, summary.Totals.UpstreamCost, 0.000001)
 	require.InDelta(t, 26.0, summary.Totals.UserCost, 0.000001)
+	require.InDelta(t, 26.0, summary.Totals.DownstreamRevenueRMB, 0.000001)
 	require.Len(t, pool.Accounts[0].Groups, 1)
 	require.Equal(t, "kiro-vip", pool.Accounts[0].Groups[0].GroupName)
 	require.InDelta(t, 1.8, pool.Accounts[0].Groups[0].CurrentGroupRate, 0.000001)

@@ -194,6 +194,10 @@ type upstreamRealSummaryTotals struct {
 	TotalTokens                 int64   `json:"total_tokens"`
 	StandardCost                float64 `json:"standard_cost"`
 	DownstreamRevenueRMB        float64 `json:"downstream_revenue_rmb"`
+	DownstreamUsageQuota        float64 `json:"downstream_usage_quota"`
+	BalanceRevenueRMB           float64 `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost       float64 `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB      float64 `json:"subscription_revenue_rmb"`
 	LocalAccountCostRMB         float64 `json:"local_account_cost_rmb"`
 	UpstreamUsedRMB             float64 `json:"upstream_used_rmb"`
 	AllocatedUpstreamUsedRMB    float64 `json:"allocated_upstream_used_rmb"`
@@ -218,6 +222,10 @@ type upstreamRealPoolSummary struct {
 	TotalTokens                 int64                            `json:"total_tokens"`
 	StandardCost                float64                          `json:"standard_cost"`
 	DownstreamRevenueRMB        float64                          `json:"downstream_revenue_rmb"`
+	DownstreamUsageQuota        float64                          `json:"downstream_usage_quota"`
+	BalanceRevenueRMB           float64                          `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost       float64                          `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB      float64                          `json:"subscription_revenue_rmb"`
 	LocalAccountCostRMB         float64                          `json:"local_account_cost_rmb"`
 	UpstreamUsedRMB             float64                          `json:"upstream_used_rmb"`
 	AllocatedUpstreamUsedRMB    float64                          `json:"allocated_upstream_used_rmb"`
@@ -246,6 +254,10 @@ type upstreamRealAccountCostSummary struct {
 	TotalTokens             int64                                `json:"total_tokens"`
 	StandardCost            float64                              `json:"standard_cost"`
 	DownstreamRevenueRMB    float64                              `json:"downstream_revenue_rmb"`
+	DownstreamUsageQuota    float64                              `json:"downstream_usage_quota"`
+	BalanceRevenueRMB       float64                              `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost   float64                              `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB  float64                              `json:"subscription_revenue_rmb"`
 	LocalAccountCostRMB     float64                              `json:"local_account_cost_rmb"`
 	UpstreamUsedRMB         float64                              `json:"upstream_used_rmb"`
 	UpstreamRemainingRMB    float64                              `json:"upstream_remaining_rmb"`
@@ -272,6 +284,10 @@ type upstreamRealGroupCostSummary struct {
 	TotalTokens              int64   `json:"total_tokens"`
 	StandardCost             float64 `json:"standard_cost"`
 	DownstreamRevenueRMB     float64 `json:"downstream_revenue_rmb"`
+	DownstreamUsageQuota     float64 `json:"downstream_usage_quota"`
+	BalanceRevenueRMB        float64 `json:"balance_revenue_rmb"`
+	SubscriptionQuotaCost    float64 `json:"subscription_quota_cost"`
+	SubscriptionRevenueRMB   float64 `json:"subscription_revenue_rmb"`
 	LocalAccountCostRMB      float64 `json:"local_account_cost_rmb"`
 	AllocatedUpstreamUsedRMB float64 `json:"allocated_upstream_used_rmb"`
 	ProfitRMB                float64 `json:"profit_rmb"`
@@ -413,6 +429,10 @@ func (h *UpstreamCostHandler) GetRealSummary(c *gin.Context) {
 		pool.TotalTokens += child.TotalTokens
 		pool.StandardCost += child.StandardCost
 		pool.DownstreamRevenueRMB += child.DownstreamRevenueRMB
+		pool.DownstreamUsageQuota += child.DownstreamUsageQuota
+		pool.BalanceRevenueRMB += child.BalanceRevenueRMB
+		pool.SubscriptionQuotaCost += child.SubscriptionQuotaCost
+		pool.SubscriptionRevenueRMB += child.SubscriptionRevenueRMB
 		pool.LocalAccountCostRMB += child.LocalAccountCostRMB
 		pool.AllocatedUpstreamUsedRMB += child.UpstreamUsedRMB
 		pool.rateWeightSum += child.UpstreamConfiguredRate * child.StandardCost
@@ -469,7 +489,7 @@ func (h *UpstreamCostHandler) GetRealSummary(c *gin.Context) {
 		pool.ProfitRMB = pool.DownstreamRevenueRMB - pool.UpstreamUsedRMB
 		pool.WeightedUpstreamAccountRate = safeRatio(pool.rateWeightSum, pool.StandardCost)
 		pool.UpstreamEffectiveRate = pool.WeightedUpstreamAccountRate
-		pool.DownstreamEffectiveRate = safeRatio(pool.DownstreamRevenueRMB, pool.StandardCost)
+		pool.DownstreamEffectiveRate = safeRatio(pool.DownstreamUsageQuota, pool.StandardCost)
 
 		out.Totals.AccountCount += pool.AccountCount
 		out.Totals.ErrorCount += len(pool.Errors)
@@ -477,6 +497,10 @@ func (h *UpstreamCostHandler) GetRealSummary(c *gin.Context) {
 		out.Totals.TotalTokens += pool.TotalTokens
 		out.Totals.StandardCost += pool.StandardCost
 		out.Totals.DownstreamRevenueRMB += pool.DownstreamRevenueRMB
+		out.Totals.DownstreamUsageQuota += pool.DownstreamUsageQuota
+		out.Totals.BalanceRevenueRMB += pool.BalanceRevenueRMB
+		out.Totals.SubscriptionQuotaCost += pool.SubscriptionQuotaCost
+		out.Totals.SubscriptionRevenueRMB += pool.SubscriptionRevenueRMB
 		out.Totals.LocalAccountCostRMB += pool.LocalAccountCostRMB
 		out.Totals.UpstreamUsedRMB += pool.UpstreamUsedRMB
 		out.Totals.AllocatedUpstreamUsedRMB += pool.AllocatedUpstreamUsedRMB
@@ -494,7 +518,7 @@ func (h *UpstreamCostHandler) GetRealSummary(c *gin.Context) {
 	}
 	out.Totals.WeightedUpstreamAccountRate = safeRatio(totalRateWeight, out.Totals.StandardCost)
 	out.Totals.UpstreamEffectiveRate = out.Totals.WeightedUpstreamAccountRate
-	out.Totals.DownstreamEffectiveRate = safeRatio(out.Totals.DownstreamRevenueRMB, out.Totals.StandardCost)
+	out.Totals.DownstreamEffectiveRate = safeRatio(out.Totals.DownstreamUsageQuota, out.Totals.StandardCost)
 
 	sort.Slice(out.Pools, func(i, j int) bool {
 		if out.Pools[i].UpstreamUsedRMB == out.Pools[j].UpstreamUsedRMB {
@@ -552,7 +576,11 @@ func (h *UpstreamCostHandler) buildRealAccountCostSummary(
 		Requests:                local.Requests,
 		TotalTokens:             local.TotalTokens,
 		StandardCost:            local.StandardCost,
-		DownstreamRevenueRMB:    local.UserCost,
+		DownstreamRevenueRMB:    local.DownstreamRevenueRMB,
+		DownstreamUsageQuota:    local.UserCost,
+		BalanceRevenueRMB:       local.BalanceRevenueRMB,
+		SubscriptionQuotaCost:   local.SubscriptionQuotaCost,
+		SubscriptionRevenueRMB:  local.SubscriptionRevenueRMB,
 		LocalAccountCostRMB:     local.UpstreamCost,
 		UpstreamConfiguredRate:  local.RateMultiplier,
 		DownstreamEffectiveRate: safeRatio(local.UserCost, local.StandardCost),
@@ -638,10 +666,14 @@ func buildRealGroupCostSummaries(groups []service.UpstreamCostGroupBreakdown, ac
 			Requests:                 group.Requests,
 			TotalTokens:              group.TotalTokens,
 			StandardCost:             group.StandardCost,
-			DownstreamRevenueRMB:     group.UserCost,
+			DownstreamRevenueRMB:     group.DownstreamRevenueRMB,
+			DownstreamUsageQuota:     group.UserCost,
+			BalanceRevenueRMB:        group.BalanceRevenueRMB,
+			SubscriptionQuotaCost:    group.SubscriptionQuotaCost,
+			SubscriptionRevenueRMB:   group.SubscriptionRevenueRMB,
 			LocalAccountCostRMB:      group.UpstreamCost,
 			AllocatedUpstreamUsedRMB: allocatedUpstream,
-			ProfitRMB:                group.UserCost - allocatedUpstream,
+			ProfitRMB:                group.DownstreamRevenueRMB - allocatedUpstream,
 			DownstreamEffectiveRate:  safeRatio(group.UserCost, group.StandardCost),
 		})
 	}
