@@ -113,9 +113,9 @@ fi
 
 LOCAL_COMMIT="$(git rev-parse --short=12 "${BRANCH}")"
 CANDIDATE_TAG="${IMAGE_TAG}-${LOCAL_COMMIT}"
-BUILD_FLAGS=()
+BUILD_FLAGS_STR=""
 if [[ "${NO_CACHE}" == "1" ]]; then
-  BUILD_FLAGS+=(--no-cache)
+  BUILD_FLAGS_STR="--no-cache"
 fi
 
 info "Checking remote compose service..."
@@ -137,7 +137,7 @@ ok "Remote clone completed"
 info "Building candidate image ${CANDIDATE_TAG}..."
 remote_bash "
   set -euo pipefail
-  docker build ${BUILD_FLAGS[*]} \
+  docker build ${BUILD_FLAGS_STR} \
     --build-arg COMMIT='${LOCAL_COMMIT}' \
     -f '${TMP_DIR}/${DOCKERFILE_PATH}' \
     -t '${CANDIDATE_TAG}' \
