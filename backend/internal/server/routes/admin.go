@@ -643,6 +643,7 @@ func registerUpstreamCostRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	uc := admin.Group("/upstream-cost")
 	{
 		uc.GET("/local-summary", h.Admin.UpstreamCost.GetLocalSummary)
+		uc.GET("/real-summary", h.Admin.UpstreamCost.GetRealSummary)
 		uc.POST("/test-connection", h.Admin.UpstreamCost.TestConnection)
 		uc.POST("/user-info", h.Admin.UpstreamCost.GetUserInfo)
 		uc.POST("/stats", h.Admin.UpstreamCost.GetStats)

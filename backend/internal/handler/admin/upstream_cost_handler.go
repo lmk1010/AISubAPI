@@ -1,11 +1,16 @@
 package admin
 
 import (
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -14,6 +19,8 @@ import (
 	"github.com/Wei-Shaw/sub2api/internal/service"
 	"github.com/gin-gonic/gin"
 )
+
+const newAPIQuotaUnitsPerRMB = 500000.0
 
 // UpstreamCostHandler handles upstream cost analysis proxy requests
 type UpstreamCostHandler struct {
@@ -168,6 +175,137 @@ type upstreamStatResponse struct {
 	TPM      int64   `json:"tpm"`
 }
 
+type upstreamRealSummaryResponse struct {
+	StartDate   string                    `json:"start_date"`
+	EndDate     string                    `json:"end_date"`
+	GeneratedAt time.Time                 `json:"generated_at"`
+	Scope       string                    `json:"scope"`
+	Totals      upstreamRealSummaryTotals `json:"totals"`
+	Pools       []upstreamRealPoolSummary `json:"pools"`
+}
+
+type upstreamRealSummaryTotals struct {
+	AccountCount                int     `json:"account_count"`
+	ErrorCount                  int     `json:"error_count"`
+	Requests                    int64   `json:"requests"`
+	TotalTokens                 int64   `json:"total_tokens"`
+	StandardCost                float64 `json:"standard_cost"`
+	DownstreamRevenueRMB        float64 `json:"downstream_revenue_rmb"`
+	LocalAccountCostRMB         float64 `json:"local_account_cost_rmb"`
+	UpstreamUsedRMB             float64 `json:"upstream_used_rmb"`
+	AllocatedUpstreamUsedRMB    float64 `json:"allocated_upstream_used_rmb"`
+	UnallocatedUpstreamUsedRMB  float64 `json:"unallocated_upstream_used_rmb"`
+	UpstreamRemainingRMB        float64 `json:"upstream_remaining_rmb"`
+	UpstreamUsedUSD             float64 `json:"upstream_used_usd"`
+	SuccessfulRechargeRMB       float64 `json:"successful_recharge_rmb"`
+	ProfitRMB                   float64 `json:"profit_rmb"`
+	UpstreamEffectiveRate       float64 `json:"upstream_effective_rate"`
+	DownstreamEffectiveRate     float64 `json:"downstream_effective_rate"`
+	WeightedUpstreamAccountRate float64 `json:"weighted_upstream_account_rate"`
+}
+
+type upstreamRealPoolSummary struct {
+	PoolKey                     string                           `json:"pool_key"`
+	PoolName                    string                           `json:"pool_name"`
+	ProviderType                string                           `json:"provider_type"`
+	BaseURL                     string                           `json:"base_url"`
+	AccountCount                int                              `json:"account_count"`
+	AccountIDs                  []int64                          `json:"account_ids"`
+	Requests                    int64                            `json:"requests"`
+	TotalTokens                 int64                            `json:"total_tokens"`
+	StandardCost                float64                          `json:"standard_cost"`
+	DownstreamRevenueRMB        float64                          `json:"downstream_revenue_rmb"`
+	LocalAccountCostRMB         float64                          `json:"local_account_cost_rmb"`
+	UpstreamUsedRMB             float64                          `json:"upstream_used_rmb"`
+	AllocatedUpstreamUsedRMB    float64                          `json:"allocated_upstream_used_rmb"`
+	UnallocatedUpstreamUsedRMB  float64                          `json:"unallocated_upstream_used_rmb"`
+	UpstreamRemainingRMB        float64                          `json:"upstream_remaining_rmb"`
+	UpstreamUsedUSD             float64                          `json:"upstream_used_usd"`
+	SuccessfulRechargeRMB       float64                          `json:"successful_recharge_rmb"`
+	ProfitRMB                   float64                          `json:"profit_rmb"`
+	UpstreamEffectiveRate       float64                          `json:"upstream_effective_rate"`
+	DownstreamEffectiveRate     float64                          `json:"downstream_effective_rate"`
+	WeightedUpstreamAccountRate float64                          `json:"weighted_upstream_account_rate"`
+	Status                      string                           `json:"status"`
+	Errors                      []string                         `json:"errors"`
+	Accounts                    []upstreamRealAccountCostSummary `json:"accounts"`
+}
+
+type upstreamRealAccountCostSummary struct {
+	AccountID               int64                                `json:"account_id"`
+	AccountName             string                               `json:"account_name"`
+	Platform                string                               `json:"platform"`
+	Status                  string                               `json:"status"`
+	GroupIDs                []int64                              `json:"group_ids"`
+	ProviderType            string                               `json:"provider_type"`
+	BaseURL                 string                               `json:"base_url"`
+	Requests                int64                                `json:"requests"`
+	TotalTokens             int64                                `json:"total_tokens"`
+	StandardCost            float64                              `json:"standard_cost"`
+	DownstreamRevenueRMB    float64                              `json:"downstream_revenue_rmb"`
+	LocalAccountCostRMB     float64                              `json:"local_account_cost_rmb"`
+	UpstreamUsedRMB         float64                              `json:"upstream_used_rmb"`
+	UpstreamRemainingRMB    float64                              `json:"upstream_remaining_rmb"`
+	UpstreamUsedUSD         float64                              `json:"upstream_used_usd"`
+	ProfitRMB               float64                              `json:"profit_rmb"`
+	UpstreamConfiguredRate  float64                              `json:"upstream_configured_rate"`
+	UpstreamEffectiveRate   float64                              `json:"upstream_effective_rate"`
+	DownstreamEffectiveRate float64                              `json:"downstream_effective_rate"`
+	Source                  string                               `json:"source"`
+	TokenName               string                               `json:"token_name"`
+	TokenHash               string                               `json:"token_hash"`
+	RemoteStatus            string                               `json:"remote_status"`
+	Error                   string                               `json:"error"`
+	Trend                   []service.UpstreamCostTrendPoint     `json:"trend"`
+	Models                  []service.UpstreamCostModelBreakdown `json:"models"`
+}
+
+type upstreamRealPoolAccumulator struct {
+	upstreamRealPoolSummary
+	accountUsedSeen map[string]bool
+	balanceSeen     map[string]bool
+	rechargeSeen    map[string]bool
+	rateWeightSum   float64
+}
+
+type upstreamRemoteAccountSnapshot struct {
+	IdentityKey           string
+	BalanceQuota          int64
+	UsedQuota             int64
+	StatQuota             int64
+	RequestCount          int64
+	SuccessfulRechargeRMB float64
+	RechargeKnown         bool
+	Error                 string
+}
+
+func (s upstreamRemoteAccountSnapshot) effectiveUsedQuota() int64 {
+	if s.StatQuota > s.UsedQuota {
+		return s.StatQuota
+	}
+	return s.UsedQuota
+}
+
+type newAPITokenUsageData struct {
+	Object       string `json:"object"`
+	Name         string `json:"name"`
+	TotalGranted int64  `json:"total_granted"`
+	TotalUsed    int64  `json:"total_used"`
+	Available    int64  `json:"available"`
+	Unlimited    bool   `json:"unlimited"`
+	ExpiredTime  int64  `json:"expired_time"`
+}
+
+type newAPITopupListData struct {
+	Items []newAPITopupItem `json:"items"`
+}
+
+type newAPITopupItem struct {
+	Amount float64 `json:"amount"`
+	Money  float64 `json:"money"`
+	Status any     `json:"status"`
+}
+
 // GetLocalSummary returns local usage-log-based cost aggregation by upstream quota pool.
 func (h *UpstreamCostHandler) GetLocalSummary(c *gin.Context) {
 	if h.localService == nil {
@@ -181,6 +319,251 @@ func (h *UpstreamCostHandler) GetLocalSummary(c *gin.Context) {
 		return
 	}
 	response.Success(c, summary)
+}
+
+// GetRealSummary returns a remote-first upstream cost summary.
+//
+// Remote upstream usage is intentionally not derived from local usage logs. Local logs are
+// only used for our downstream revenue and request/token attribution by account.
+func (h *UpstreamCostHandler) GetRealSummary(c *gin.Context) {
+	if h.localService == nil {
+		response.Error(c, http.StatusInternalServerError, "Upstream cost service is not configured")
+		return
+	}
+
+	now := time.Now()
+	startTime := time.Unix(0, 0).UTC()
+	endTime := now.Add(24 * time.Hour)
+	configuredAccounts, err := h.localService.GetConfiguredAccountSummaries(c.Request.Context(), startTime, endTime)
+	if err != nil {
+		response.Error(c, http.StatusInternalServerError, "Failed to get local account summaries: "+err.Error())
+		return
+	}
+
+	identityCounts := make(map[string]int, len(configuredAccounts))
+	for _, configured := range configuredAccounts {
+		identityCounts[upstreamRemoteIdentityKey(configured)]++
+	}
+
+	snapshotCache := make(map[string]upstreamRemoteAccountSnapshot)
+	pools := make(map[string]*upstreamRealPoolAccumulator)
+	for _, configured := range configuredAccounts {
+		cfg := configured.Config
+		poolKey := upstreamRealPoolKey(cfg)
+		pool := pools[poolKey]
+		if pool == nil {
+			pool = &upstreamRealPoolAccumulator{
+				upstreamRealPoolSummary: upstreamRealPoolSummary{
+					PoolKey:      poolKey,
+					PoolName:     upstreamRealPoolName(cfg),
+					ProviderType: cfg.ProviderType,
+					BaseURL:      firstNonEmptyString(cfg.NormalizedBaseURL, cfg.BaseURL),
+					AccountIDs:   []int64{},
+					Errors:       []string{},
+					Accounts:     []upstreamRealAccountCostSummary{},
+					Status:       "ok",
+				},
+				accountUsedSeen: map[string]bool{},
+				balanceSeen:     map[string]bool{},
+				rechargeSeen:    map[string]bool{},
+			}
+			pools[poolKey] = pool
+		}
+
+		child := h.buildRealAccountCostSummary(c.Request.Context(), configured, identityCounts, snapshotCache)
+		identityKey := upstreamRemoteIdentityKey(configured)
+		if child.Error != "" {
+			pool.Errors = append(pool.Errors, fmt.Sprintf("%s: %s", child.AccountName, child.Error))
+		}
+		if child.RemoteStatus != "ok" {
+			pool.Status = "partial"
+		}
+
+		pool.AccountIDs = append(pool.AccountIDs, child.AccountID)
+		pool.Accounts = append(pool.Accounts, child)
+		pool.Requests += child.Requests
+		pool.TotalTokens += child.TotalTokens
+		pool.StandardCost += child.StandardCost
+		pool.DownstreamRevenueRMB += child.DownstreamRevenueRMB
+		pool.LocalAccountCostRMB += child.LocalAccountCostRMB
+		pool.AllocatedUpstreamUsedRMB += child.UpstreamUsedRMB
+		pool.rateWeightSum += child.UpstreamConfiguredRate * child.StandardCost
+
+		if snapshot, ok := snapshotCache[identityKey]; ok && snapshot.Error == "" {
+			if !pool.accountUsedSeen[identityKey] {
+				pool.UpstreamUsedRMB += quotaToMoney(snapshot.effectiveUsedQuota())
+				pool.accountUsedSeen[identityKey] = true
+			}
+			if !pool.balanceSeen[identityKey] {
+				pool.UpstreamRemainingRMB += quotaToMoney(snapshot.BalanceQuota)
+				pool.balanceSeen[identityKey] = true
+			}
+			if snapshot.RechargeKnown && !pool.rechargeSeen[identityKey] {
+				pool.SuccessfulRechargeRMB += snapshot.SuccessfulRechargeRMB
+				pool.rechargeSeen[identityKey] = true
+			}
+		}
+	}
+
+	out := upstreamRealSummaryResponse{
+		StartDate:   startTime.Format("2006-01-02"),
+		EndDate:     now.Format("2006-01-02"),
+		GeneratedAt: now,
+		Scope:       "remote_upstream_lifetime_and_local_lifetime",
+		Pools:       make([]upstreamRealPoolSummary, 0, len(pools)),
+	}
+
+	for _, pool := range pools {
+		pool.AccountCount = len(pool.Accounts)
+		sort.Slice(pool.AccountIDs, func(i, j int) bool { return pool.AccountIDs[i] < pool.AccountIDs[j] })
+		sort.Slice(pool.Accounts, func(i, j int) bool {
+			if pool.Accounts[i].UpstreamUsedRMB == pool.Accounts[j].UpstreamUsedRMB {
+				return pool.Accounts[i].AccountName < pool.Accounts[j].AccountName
+			}
+			return pool.Accounts[i].UpstreamUsedRMB > pool.Accounts[j].UpstreamUsedRMB
+		})
+		if pool.UpstreamUsedRMB <= 0 && pool.AllocatedUpstreamUsedRMB > 0 {
+			pool.UpstreamUsedRMB = pool.AllocatedUpstreamUsedRMB
+			if pool.Status == "ok" {
+				pool.Status = "partial"
+			}
+		}
+		if pool.UpstreamUsedRMB > pool.AllocatedUpstreamUsedRMB {
+			pool.UnallocatedUpstreamUsedRMB = pool.UpstreamUsedRMB - pool.AllocatedUpstreamUsedRMB
+		}
+		if pool.Status == "ok" && pool.UnallocatedUpstreamUsedRMB > 0.000001 {
+			pool.Status = "partial"
+		}
+		if pool.Status == "" {
+			pool.Status = "ok"
+		}
+		pool.UpstreamUsedUSD = pool.UpstreamUsedRMB
+		pool.ProfitRMB = pool.DownstreamRevenueRMB - pool.UpstreamUsedRMB
+		pool.WeightedUpstreamAccountRate = safeRatio(pool.rateWeightSum, pool.StandardCost)
+		pool.UpstreamEffectiveRate = pool.WeightedUpstreamAccountRate
+		pool.DownstreamEffectiveRate = safeRatio(pool.DownstreamRevenueRMB, pool.StandardCost)
+
+		out.Totals.AccountCount += pool.AccountCount
+		out.Totals.ErrorCount += len(pool.Errors)
+		out.Totals.Requests += pool.Requests
+		out.Totals.TotalTokens += pool.TotalTokens
+		out.Totals.StandardCost += pool.StandardCost
+		out.Totals.DownstreamRevenueRMB += pool.DownstreamRevenueRMB
+		out.Totals.LocalAccountCostRMB += pool.LocalAccountCostRMB
+		out.Totals.UpstreamUsedRMB += pool.UpstreamUsedRMB
+		out.Totals.AllocatedUpstreamUsedRMB += pool.AllocatedUpstreamUsedRMB
+		out.Totals.UnallocatedUpstreamUsedRMB += pool.UnallocatedUpstreamUsedRMB
+		out.Totals.UpstreamRemainingRMB += pool.UpstreamRemainingRMB
+		out.Totals.UpstreamUsedUSD += pool.UpstreamUsedUSD
+		out.Totals.SuccessfulRechargeRMB += pool.SuccessfulRechargeRMB
+		out.Totals.ProfitRMB += pool.ProfitRMB
+
+		out.Pools = append(out.Pools, pool.upstreamRealPoolSummary)
+	}
+	var totalRateWeight float64
+	for _, pool := range pools {
+		totalRateWeight += pool.rateWeightSum
+	}
+	out.Totals.WeightedUpstreamAccountRate = safeRatio(totalRateWeight, out.Totals.StandardCost)
+	out.Totals.UpstreamEffectiveRate = out.Totals.WeightedUpstreamAccountRate
+	out.Totals.DownstreamEffectiveRate = safeRatio(out.Totals.DownstreamRevenueRMB, out.Totals.StandardCost)
+
+	sort.Slice(out.Pools, func(i, j int) bool {
+		if out.Pools[i].UpstreamUsedRMB == out.Pools[j].UpstreamUsedRMB {
+			return out.Pools[i].PoolName < out.Pools[j].PoolName
+		}
+		return out.Pools[i].UpstreamUsedRMB > out.Pools[j].UpstreamUsedRMB
+	})
+
+	response.Success(c, out)
+}
+
+func (h *UpstreamCostHandler) buildRealAccountCostSummary(
+	ctx context.Context,
+	configured service.UpstreamCostConfiguredAccount,
+	identityCounts map[string]int,
+	snapshotCache map[string]upstreamRemoteAccountSnapshot,
+) upstreamRealAccountCostSummary {
+	account := configured.Account
+	cfg := configured.Config
+	local := configured.Summary
+	child := upstreamRealAccountCostSummary{
+		AccountID:               local.AccountID,
+		AccountName:             local.AccountName,
+		Platform:                local.Platform,
+		Status:                  local.Status,
+		GroupIDs:                append([]int64(nil), local.GroupIDs...),
+		ProviderType:            cfg.ProviderType,
+		BaseURL:                 firstNonEmptyString(cfg.NormalizedBaseURL, cfg.BaseURL),
+		Requests:                local.Requests,
+		TotalTokens:             local.TotalTokens,
+		StandardCost:            local.StandardCost,
+		DownstreamRevenueRMB:    local.UserCost,
+		LocalAccountCostRMB:     local.UpstreamCost,
+		UpstreamConfiguredRate:  local.RateMultiplier,
+		DownstreamEffectiveRate: safeRatio(local.UserCost, local.StandardCost),
+		Source:                  "unknown",
+		RemoteStatus:            "ok",
+		Trend:                   local.Trend,
+		Models:                  local.Models,
+	}
+
+	identityKey := upstreamRemoteIdentityKey(configured)
+	snapshot, ok := snapshotCache[identityKey]
+	if !ok {
+		switch cfg.ProviderType {
+		case "newapi":
+			snapshot = h.fetchNewAPIAccountSnapshot(ctx, cfg)
+		case "sub2api":
+			snapshot = h.fetchSub2APIAccountSnapshot(ctx, cfg)
+		default:
+			snapshot = upstreamRemoteAccountSnapshot{IdentityKey: identityKey, Error: "unsupported upstream provider: " + cfg.ProviderType}
+		}
+		if snapshot.IdentityKey == "" {
+			snapshot.IdentityKey = identityKey
+		}
+		snapshotCache[identityKey] = snapshot
+	}
+
+	if snapshot.Error != "" {
+		child.RemoteStatus = "error"
+		child.Error = snapshot.Error
+	}
+	child.UpstreamRemainingRMB = quotaToMoney(snapshot.BalanceQuota)
+
+	apiKey := strings.TrimSpace(stringFromHandlerAny(account.Credentials["api_key"]))
+	if cfg.ProviderType == "newapi" && apiKey != "" {
+		child.TokenHash = shortSecretHash(apiKey)
+		tokenUsage, err := h.fetchNewAPITokenUsage(ctx, cfg.BaseURL, apiKey)
+		if err != nil {
+			child.RemoteStatus = "partial"
+			child.Error = appendError(child.Error, "API key usage failed: "+err.Error())
+			child.Source = "token_error"
+		} else {
+			child.TokenName = tokenUsage.Name
+			child.Source = "token"
+			if snapshot.Error != "" {
+				child.RemoteStatus = "partial"
+			}
+			child.UpstreamUsedRMB = quotaToMoney(tokenUsage.TotalUsed)
+			child.UpstreamUsedUSD = child.UpstreamUsedRMB
+			if !tokenUsage.Unlimited && tokenUsage.Available >= 0 {
+				child.UpstreamRemainingRMB = quotaToMoney(tokenUsage.Available)
+			}
+		}
+	} else if snapshot.Error == "" && identityCounts[identityKey] == 1 {
+		child.Source = "account_total"
+		child.UpstreamUsedRMB = quotaToMoney(snapshot.effectiveUsedQuota())
+		child.UpstreamUsedUSD = child.UpstreamUsedRMB
+	} else if snapshot.Error == "" {
+		child.RemoteStatus = "partial"
+		child.Source = "unallocated"
+		child.Error = appendError(child.Error, "missing API key usage; this upstream account is shared and cannot be split safely")
+	}
+
+	child.ProfitRMB = child.DownstreamRevenueRMB - child.UpstreamUsedRMB
+	child.UpstreamEffectiveRate = child.UpstreamConfiguredRate
+	return child
 }
 
 // --- Helper: do upstream request ---
@@ -211,6 +594,354 @@ func (h *UpstreamCostHandler) doUpstreamGet(baseURL, path, accessToken string, u
 		return nil, resp.StatusCode, fmt.Errorf("read response: %w", err)
 	}
 	return body, resp.StatusCode, nil
+}
+
+func (h *UpstreamCostHandler) doUpstreamGetWithContext(ctx context.Context, baseURL, path string, headers map[string]string) ([]byte, int, error) {
+	fullURL := strings.TrimSuffix(baseURL, "/") + path
+	if err := ssrf.ValidateURL(fullURL); err != nil {
+		return nil, 0, fmt.Errorf("SSRF blocked: %w", err)
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, fullURL, nil)
+	if err != nil {
+		return nil, 0, fmt.Errorf("create request: %w", err)
+	}
+	for key, value := range headers {
+		if strings.TrimSpace(value) != "" {
+			req.Header.Set(key, value)
+		}
+	}
+
+	resp, err := h.client.Do(req)
+	if err != nil {
+		return nil, 0, fmt.Errorf("upstream request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 2<<20))
+	if err != nil {
+		return nil, resp.StatusCode, fmt.Errorf("read response: %w", err)
+	}
+	return body, resp.StatusCode, nil
+}
+
+func (h *UpstreamCostHandler) fetchNewAPIAccountSnapshot(ctx context.Context, cfg service.UpstreamCostProviderConfig) upstreamRemoteAccountSnapshot {
+	snapshot := upstreamRemoteAccountSnapshot{IdentityKey: upstreamConfigIdentityKey(cfg)}
+	if strings.TrimSpace(cfg.AccessToken) == "" || cfg.UserID == 0 {
+		snapshot.Error = "missing New-API access token or user id"
+		return snapshot
+	}
+
+	headers := map[string]string{
+		"Authorization": "Bearer " + cfg.AccessToken,
+		"New-Api-User":  fmt.Sprintf("%d", cfg.UserID),
+	}
+	body, statusCode, err := h.doUpstreamGetWithContext(ctx, cfg.BaseURL, "/api/user/self/", headers)
+	if err != nil {
+		snapshot.Error = err.Error()
+		return snapshot
+	}
+	if statusCode != http.StatusOK {
+		snapshot.Error = fmt.Sprintf("user info failed (%d): %s", statusCode, newAPIErrorMessage(body))
+		return snapshot
+	}
+	var user newAPIUserInfo
+	if err := parseNewAPIData(body, &user); err != nil {
+		snapshot.Error = "parse user info: " + err.Error()
+		return snapshot
+	}
+	snapshot.BalanceQuota = user.Quota
+	snapshot.UsedQuota = user.UsedQuota
+	snapshot.RequestCount = user.RequestCount
+
+	if body, statusCode, err := h.doUpstreamGetWithContext(ctx, cfg.BaseURL, "/api/log/self/stat", headers); err == nil && statusCode == http.StatusOK {
+		var stat newAPIStatData
+		if err := parseNewAPIData(body, &stat); err == nil {
+			snapshot.StatQuota = stat.Quota
+		}
+	}
+	if rechargeRMB, ok := h.fetchNewAPITopupRMB(ctx, cfg, headers); ok {
+		snapshot.SuccessfulRechargeRMB = rechargeRMB
+		snapshot.RechargeKnown = true
+	}
+	return snapshot
+}
+
+func (h *UpstreamCostHandler) fetchNewAPITokenUsage(ctx context.Context, baseURL, apiKey string) (newAPITokenUsageData, error) {
+	if strings.TrimSpace(apiKey) == "" {
+		return newAPITokenUsageData{}, fmt.Errorf("missing API key")
+	}
+	body, statusCode, err := h.doUpstreamGetWithContext(ctx, baseURL, "/api/usage/token", map[string]string{
+		"Authorization": "Bearer " + apiKey,
+	})
+	if err != nil {
+		return newAPITokenUsageData{}, err
+	}
+	if statusCode != http.StatusOK {
+		return newAPITokenUsageData{}, fmt.Errorf("token usage failed (%d): %s", statusCode, newAPIErrorMessage(body))
+	}
+	var tokenUsage newAPITokenUsageData
+	if err := parseNewAPIData(body, &tokenUsage); err != nil {
+		return newAPITokenUsageData{}, fmt.Errorf("parse token usage: %w", err)
+	}
+	return tokenUsage, nil
+}
+
+func (h *UpstreamCostHandler) fetchNewAPITopupRMB(ctx context.Context, cfg service.UpstreamCostProviderConfig, headers map[string]string) (float64, bool) {
+	body, statusCode, err := h.doUpstreamGetWithContext(ctx, cfg.BaseURL, "/api/user/topup/self", headers)
+	if err != nil || statusCode != http.StatusOK {
+		return 0, false
+	}
+	var topups newAPITopupListData
+	if err := parseNewAPIData(body, &topups); err != nil {
+		return 0, false
+	}
+	var total float64
+	for _, item := range topups.Items {
+		if !newAPITopupSuccess(item.Status) {
+			continue
+		}
+		amount := item.Money
+		if amount <= 0 {
+			amount = item.Amount
+		}
+		total += amount
+	}
+	return total, true
+}
+
+func (h *UpstreamCostHandler) fetchSub2APIAccountSnapshot(ctx context.Context, cfg service.UpstreamCostProviderConfig) upstreamRemoteAccountSnapshot {
+	_ = ctx
+	snapshot := upstreamRemoteAccountSnapshot{IdentityKey: upstreamConfigIdentityKey(cfg)}
+	if cfg.Email == "" || cfg.Password == "" {
+		snapshot.Error = "missing Sub2API email or password"
+		return snapshot
+	}
+
+	jwt, err := h.sub2apiLogin(cfg.BaseURL, cfg.Email, cfg.Password)
+	if err != nil {
+		snapshot.Error = "login failed: " + err.Error()
+		return snapshot
+	}
+
+	body, statusCode, err := h.doSub2APIGet(cfg.BaseURL, "/api/v1/user/profile", jwt)
+	if err != nil {
+		snapshot.Error = "profile failed: " + err.Error()
+		return snapshot
+	}
+	if statusCode != http.StatusOK {
+		snapshot.Error = fmt.Sprintf("profile failed (%d)", statusCode)
+		return snapshot
+	}
+	apiResp, err := parseSub2APIResponse(body)
+	if err != nil {
+		snapshot.Error = "parse profile: " + err.Error()
+		return snapshot
+	}
+	var profile struct {
+		Balance float64 `json:"balance"`
+	}
+	if err := json.Unmarshal(apiResp.Data, &profile); err != nil {
+		snapshot.Error = "parse profile data: " + err.Error()
+		return snapshot
+	}
+	snapshot.BalanceQuota = int64(profile.Balance * newAPIQuotaUnitsPerRMB)
+
+	body, statusCode, err = h.doSub2APIGet(cfg.BaseURL, "/api/v1/usage/dashboard/stats", jwt)
+	if err == nil && statusCode == http.StatusOK {
+		if apiResp, err := parseSub2APIResponse(body); err == nil {
+			var stats struct {
+				TotalActualCost float64 `json:"total_actual_cost"`
+			}
+			if err := json.Unmarshal(apiResp.Data, &stats); err == nil {
+				snapshot.StatQuota = int64(stats.TotalActualCost * newAPIQuotaUnitsPerRMB)
+			}
+		}
+	}
+	return snapshot
+}
+
+func parseNewAPIData(body []byte, out any) error {
+	var apiResp struct {
+		Success *bool           `json:"success"`
+		Message string          `json:"message"`
+		Data    json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(body, &apiResp); err == nil {
+		if apiResp.Success != nil && !*apiResp.Success {
+			message := strings.TrimSpace(apiResp.Message)
+			if message == "" {
+				message = "upstream returned success=false"
+			}
+			return fmt.Errorf("%s", message)
+		}
+		if apiResp.Data != nil {
+			if len(apiResp.Data) == 0 || string(apiResp.Data) == "null" {
+				return nil
+			}
+			return json.Unmarshal(apiResp.Data, out)
+		}
+		if apiResp.Success != nil {
+			return nil
+		}
+	}
+	return json.Unmarshal(body, out)
+}
+
+func newAPIErrorMessage(body []byte) string {
+	var apiResp newAPIResponse
+	if err := json.Unmarshal(body, &apiResp); err == nil && apiResp.Message != "" {
+		return apiResp.Message
+	}
+	var generic struct {
+		Error struct {
+			Message string `json:"message"`
+		} `json:"error"`
+		Message string `json:"message"`
+	}
+	if err := json.Unmarshal(body, &generic); err == nil {
+		if generic.Error.Message != "" {
+			return generic.Error.Message
+		}
+		if generic.Message != "" {
+			return generic.Message
+		}
+	}
+	return "upstream returned non-OK response"
+}
+
+func newAPITopupSuccess(raw any) bool {
+	switch value := raw.(type) {
+	case bool:
+		return value
+	case string:
+		switch strings.ToLower(strings.TrimSpace(value)) {
+		case "success", "succeeded", "paid", "completed", "complete", "done", "1":
+			return true
+		default:
+			return false
+		}
+	case float64:
+		return int(value) == 1
+	case int:
+		return value == 1
+	case int64:
+		return value == 1
+	case json.Number:
+		n, _ := value.Int64()
+		return n == 1
+	default:
+		return false
+	}
+}
+
+func upstreamRealPoolKey(cfg service.UpstreamCostProviderConfig) string {
+	baseURL := firstNonEmptyString(cfg.NormalizedBaseURL, normalizeHandlerURL(cfg.BaseURL))
+	return cfg.ProviderType + "|" + baseURL
+}
+
+func upstreamRealPoolName(cfg service.UpstreamCostProviderConfig) string {
+	baseURL := firstNonEmptyString(cfg.NormalizedBaseURL, normalizeHandlerURL(cfg.BaseURL))
+	if parsed, err := url.Parse(baseURL); err == nil && parsed.Host != "" {
+		if parsed.Path != "" && parsed.Path != "/" {
+			return parsed.Host + strings.TrimRight(parsed.Path, "/")
+		}
+		return parsed.Host
+	}
+	return firstNonEmptyString(cfg.PoolName, baseURL)
+}
+
+func upstreamRemoteIdentityKey(configured service.UpstreamCostConfiguredAccount) string {
+	return upstreamConfigIdentityKey(configured.Config)
+}
+
+func upstreamConfigIdentityKey(cfg service.UpstreamCostProviderConfig) string {
+	baseURL := firstNonEmptyString(cfg.NormalizedBaseURL, normalizeHandlerURL(cfg.BaseURL))
+	switch cfg.ProviderType {
+	case "newapi":
+		return fmt.Sprintf("newapi|%s|uid:%d|token:%s", baseURL, cfg.UserID, shortSecretHash(cfg.AccessToken))
+	case "sub2api":
+		return fmt.Sprintf("sub2api|%s|email:%s", baseURL, strings.ToLower(strings.TrimSpace(cfg.Email)))
+	default:
+		return fmt.Sprintf("%s|%s", cfg.ProviderType, baseURL)
+	}
+}
+
+func normalizeHandlerURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host == "" {
+		return strings.TrimRight(strings.ToLower(raw), "/")
+	}
+	parsed.Scheme = strings.ToLower(parsed.Scheme)
+	parsed.Host = strings.ToLower(parsed.Host)
+	parsed.RawQuery = ""
+	parsed.Fragment = ""
+	parsed.Path = strings.TrimRight(parsed.Path, "/")
+	return strings.TrimRight(parsed.String(), "/")
+}
+
+func quotaToMoney(quota int64) float64 {
+	return float64(quota) / newAPIQuotaUnitsPerRMB
+}
+
+func safeRatio(numerator, denominator float64) float64 {
+	if denominator <= 0 {
+		return 0
+	}
+	return numerator / denominator
+}
+
+func appendError(existing, next string) string {
+	if strings.TrimSpace(next) == "" {
+		return existing
+	}
+	if strings.TrimSpace(existing) == "" {
+		return next
+	}
+	return existing + "; " + next
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
+func shortSecretHash(secret string) string {
+	if strings.TrimSpace(secret) == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(secret))
+	return hex.EncodeToString(sum[:])[:12]
+}
+
+func stringFromHandlerAny(v any) string {
+	switch value := v.(type) {
+	case string:
+		return value
+	case fmt.Stringer:
+		return value.String()
+	case int:
+		return strconv.Itoa(value)
+	case int64:
+		return strconv.FormatInt(value, 10)
+	case float64:
+		if value == float64(int64(value)) {
+			return strconv.FormatInt(int64(value), 10)
+		}
+		return strconv.FormatFloat(value, 'f', -1, 64)
+	case json.Number:
+		return value.String()
+	default:
+		return ""
+	}
 }
 
 // --- Sub2API helpers ---

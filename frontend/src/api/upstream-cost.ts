@@ -133,8 +133,98 @@ export interface UpstreamCostLocalSummary {
   pools: UpstreamCostPoolSummary[]
 }
 
+export interface UpstreamRealSummaryTotals {
+  account_count: number
+  error_count: number
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  downstream_revenue_rmb: number
+  local_account_cost_rmb: number
+  upstream_used_rmb: number
+  allocated_upstream_used_rmb: number
+  unallocated_upstream_used_rmb: number
+  upstream_remaining_rmb: number
+  upstream_used_usd: number
+  successful_recharge_rmb: number
+  profit_rmb: number
+  upstream_effective_rate: number
+  downstream_effective_rate: number
+  weighted_upstream_account_rate: number
+}
+
+export interface UpstreamRealAccountSummary {
+  account_id: number
+  account_name: string
+  platform: string
+  status: string
+  group_ids: number[]
+  provider_type: string
+  base_url: string
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  downstream_revenue_rmb: number
+  local_account_cost_rmb: number
+  upstream_used_rmb: number
+  upstream_remaining_rmb: number
+  upstream_used_usd: number
+  profit_rmb: number
+  upstream_configured_rate: number
+  upstream_effective_rate: number
+  downstream_effective_rate: number
+  source: 'token' | 'account_total' | 'unallocated' | 'token_error' | 'unknown' | string
+  token_name: string
+  token_hash: string
+  remote_status: 'ok' | 'partial' | 'error' | string
+  error: string
+  trend: UpstreamCostTrendPoint[]
+  models: UpstreamCostModelBreakdown[]
+}
+
+export interface UpstreamRealPoolSummary {
+  pool_key: string
+  pool_name: string
+  provider_type: string
+  base_url: string
+  account_count: number
+  account_ids: number[]
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  downstream_revenue_rmb: number
+  local_account_cost_rmb: number
+  upstream_used_rmb: number
+  allocated_upstream_used_rmb: number
+  unallocated_upstream_used_rmb: number
+  upstream_remaining_rmb: number
+  upstream_used_usd: number
+  successful_recharge_rmb: number
+  profit_rmb: number
+  upstream_effective_rate: number
+  downstream_effective_rate: number
+  weighted_upstream_account_rate: number
+  status: 'ok' | 'partial' | 'error' | string
+  errors: string[]
+  accounts: UpstreamRealAccountSummary[]
+}
+
+export interface UpstreamRealSummary {
+  start_date: string
+  end_date: string
+  generated_at: string
+  scope: string
+  totals: UpstreamRealSummaryTotals
+  pools: UpstreamRealPoolSummary[]
+}
+
 export async function getLocalSummary(params?: UpstreamLocalSummaryParams): Promise<UpstreamCostLocalSummary> {
   const { data } = await apiClient.get<UpstreamCostLocalSummary>('/admin/upstream-cost/local-summary', { params })
+  return data
+}
+
+export async function getRealSummary(params?: UpstreamLocalSummaryParams): Promise<UpstreamRealSummary> {
+  const { data } = await apiClient.get<UpstreamRealSummary>('/admin/upstream-cost/real-summary', { params })
   return data
 }
 
@@ -164,5 +254,5 @@ export async function getLogs(
   return data
 }
 
-export const upstreamCostAPI = { getLocalSummary, testConnection, getUserInfo, getStats, getLogs }
+export const upstreamCostAPI = { getLocalSummary, getRealSummary, testConnection, getUserInfo, getStats, getLogs }
 export default upstreamCostAPI

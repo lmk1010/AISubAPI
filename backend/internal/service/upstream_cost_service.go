@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"database/sql"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -109,11 +110,22 @@ type UpstreamCostModelBreakdown struct {
 	UserCost     float64 `json:"user_cost"`
 }
 
-type upstreamProviderCostConfig struct {
-	ProviderType string
-	BaseURL      string
-	PoolKey      string
-	PoolName     string
+type UpstreamCostProviderConfig struct {
+	ProviderType      string
+	BaseURL           string
+	NormalizedBaseURL string
+	PoolKey           string
+	PoolName          string
+	AccessToken       string
+	UserID            int64
+	Email             string
+	Password          string
+}
+
+type UpstreamCostConfiguredAccount struct {
+	Account Account
+	Config  UpstreamCostProviderConfig
+	Summary UpstreamCostAccountSummary
 }
 
 type upstreamCostStats struct {
@@ -129,92 +141,30 @@ type upstreamCostStats struct {
 
 // GetLocalSummary aggregates local usage logs by upstream quota pool.
 //
-// The upstream cost is account-cost perspective:
+// The upstream cost is local account-cost perspective:
 //
-//	SUM(COALESCE(account_stats_cost, total_cost))
+//	SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1))
 //
 // UserCost is downstream billing perspective:
 //
 //	SUM(actual_cost)
 func (s *UpstreamCostService) GetLocalSummary(ctx context.Context, startTime, endTime time.Time) (*UpstreamCostLocalSummary, error) {
-	if s == nil || s.db == nil || s.accountRepo == nil {
-		return nil, errors.New("upstream cost service is not configured")
-	}
-	if !endTime.After(startTime) {
-		return nil, errors.New("end time must be after start time")
-	}
-
-	accounts, err := s.listConfiguredAccounts(ctx)
+	configuredAccounts, err := s.GetConfiguredAccountSummaries(ctx, startTime, endTime)
 	if err != nil {
-		return nil, fmt.Errorf("list accounts: %w", err)
+		return nil, err
 	}
-	if len(accounts) == 0 {
+	if len(configuredAccounts) == 0 {
 		return &UpstreamCostLocalSummary{
 			StartDate: startTime.Format("2006-01-02"),
 			EndDate:   endTime.Add(-24 * time.Hour).Format("2006-01-02"),
 			Pools:     []UpstreamCostPoolSummary{},
 		}, nil
-	}
-
-	accountIDs := make([]int64, 0, len(accounts))
-	accountByID := make(map[int64]Account, len(accounts))
-	cfgByID := make(map[int64]upstreamProviderCostConfig, len(accounts))
-	for _, account := range accounts {
-		cfg, ok := upstreamCostProviderConfig(account)
-		if !ok {
-			continue
-		}
-		accountIDs = append(accountIDs, account.ID)
-		accountByID[account.ID] = account
-		cfgByID[account.ID] = cfg
-	}
-	if len(accountIDs) == 0 {
-		return &UpstreamCostLocalSummary{
-			StartDate: startTime.Format("2006-01-02"),
-			EndDate:   endTime.Add(-24 * time.Hour).Format("2006-01-02"),
-			Pools:     []UpstreamCostPoolSummary{},
-		}, nil
-	}
-
-	statsByAccount, err := s.queryAccountStats(ctx, startTime, endTime, accountIDs)
-	if err != nil {
-		return nil, fmt.Errorf("query account stats: %w", err)
-	}
-	trendByAccount, err := s.queryAccountTrend(ctx, startTime, endTime, accountIDs)
-	if err != nil {
-		return nil, fmt.Errorf("query account trend: %w", err)
-	}
-	modelsByAccount, err := s.queryAccountModels(ctx, startTime, endTime, accountIDs)
-	if err != nil {
-		return nil, fmt.Errorf("query account models: %w", err)
 	}
 
 	pools := make(map[string]*UpstreamCostPoolSummary)
-	for _, accountID := range accountIDs {
-		account := accountByID[accountID]
-		cfg := cfgByID[accountID]
-		stats := statsByAccount[accountID]
-		accountSummary := UpstreamCostAccountSummary{
-			AccountID:      account.ID,
-			AccountName:    account.Name,
-			Platform:       account.Platform,
-			Status:         account.Status,
-			GroupIDs:       append([]int64(nil), account.GroupIDs...),
-			RateMultiplier: account.BillingRateMultiplier(),
-			ProviderType:   cfg.ProviderType,
-			BaseURL:        cfg.BaseURL,
-			PoolKey:        cfg.PoolKey,
-			PoolName:       cfg.PoolName,
-			Requests:       stats.Requests,
-			TotalTokens:    stats.TotalTokens,
-			StandardCost:   stats.StandardCost,
-			UpstreamCost:   stats.UpstreamCost,
-			UserCost:       stats.UserCost,
-			Profit:         stats.UserCost - stats.UpstreamCost,
-			Trend:          trendByAccount[accountID],
-			Models:         modelsByAccount[accountID],
-		}
-
+	for _, configured := range configuredAccounts {
+		accountSummary := configured.Summary
+		cfg := configured.Config
 		pool := pools[cfg.PoolKey]
 		if pool == nil {
 			pool = &UpstreamCostPoolSummary{
@@ -229,7 +179,7 @@ func (s *UpstreamCostService) GetLocalSummary(ctx context.Context, startTime, en
 			}
 			pools[cfg.PoolKey] = pool
 		}
-		pool.AccountIDs = append(pool.AccountIDs, account.ID)
+		pool.AccountIDs = append(pool.AccountIDs, accountSummary.AccountID)
 		pool.Accounts = append(pool.Accounts, accountSummary)
 		pool.Requests += accountSummary.Requests
 		pool.TotalTokens += accountSummary.TotalTokens
@@ -272,6 +222,85 @@ func (s *UpstreamCostService) GetLocalSummary(ctx context.Context, startTime, en
 	return out, nil
 }
 
+func (s *UpstreamCostService) GetConfiguredAccountSummaries(ctx context.Context, startTime, endTime time.Time) ([]UpstreamCostConfiguredAccount, error) {
+	if s == nil || s.db == nil || s.accountRepo == nil {
+		return nil, errors.New("upstream cost service is not configured")
+	}
+	if !endTime.After(startTime) {
+		return nil, errors.New("end time must be after start time")
+	}
+
+	accounts, err := s.listConfiguredAccounts(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list accounts: %w", err)
+	}
+	if len(accounts) == 0 {
+		return []UpstreamCostConfiguredAccount{}, nil
+	}
+
+	accountIDs := make([]int64, 0, len(accounts))
+	accountByID := make(map[int64]Account, len(accounts))
+	cfgByID := make(map[int64]UpstreamCostProviderConfig, len(accounts))
+	for _, account := range accounts {
+		cfg, ok := upstreamCostProviderConfig(account)
+		if !ok {
+			continue
+		}
+		accountIDs = append(accountIDs, account.ID)
+		accountByID[account.ID] = account
+		cfgByID[account.ID] = cfg
+	}
+	if len(accountIDs) == 0 {
+		return []UpstreamCostConfiguredAccount{}, nil
+	}
+
+	statsByAccount, err := s.queryAccountStats(ctx, startTime, endTime, accountIDs)
+	if err != nil {
+		return nil, fmt.Errorf("query account stats: %w", err)
+	}
+	trendByAccount, err := s.queryAccountTrend(ctx, startTime, endTime, accountIDs)
+	if err != nil {
+		return nil, fmt.Errorf("query account trend: %w", err)
+	}
+	modelsByAccount, err := s.queryAccountModels(ctx, startTime, endTime, accountIDs)
+	if err != nil {
+		return nil, fmt.Errorf("query account models: %w", err)
+	}
+
+	out := make([]UpstreamCostConfiguredAccount, 0, len(accountIDs))
+	for _, accountID := range accountIDs {
+		account := accountByID[accountID]
+		cfg := cfgByID[accountID]
+		stats := statsByAccount[accountID]
+		summary := UpstreamCostAccountSummary{
+			AccountID:      account.ID,
+			AccountName:    account.Name,
+			Platform:       account.Platform,
+			Status:         account.Status,
+			GroupIDs:       append([]int64(nil), account.GroupIDs...),
+			RateMultiplier: account.BillingRateMultiplier(),
+			ProviderType:   cfg.ProviderType,
+			BaseURL:        cfg.BaseURL,
+			PoolKey:        cfg.PoolKey,
+			PoolName:       cfg.PoolName,
+			Requests:       stats.Requests,
+			TotalTokens:    stats.TotalTokens,
+			StandardCost:   stats.StandardCost,
+			UpstreamCost:   stats.UpstreamCost,
+			UserCost:       stats.UserCost,
+			Profit:         stats.UserCost - stats.UpstreamCost,
+			Trend:          trendByAccount[accountID],
+			Models:         modelsByAccount[accountID],
+		}
+		out = append(out, UpstreamCostConfiguredAccount{
+			Account: account,
+			Config:  cfg,
+			Summary: summary,
+		})
+	}
+	return out, nil
+}
+
 func (s *UpstreamCostService) listConfiguredAccounts(ctx context.Context) ([]Account, error) {
 	var out []Account
 	for page := 1; ; page++ {
@@ -296,18 +325,18 @@ func (s *UpstreamCostService) listConfiguredAccounts(ctx context.Context) ([]Acc
 	return out, nil
 }
 
-func upstreamCostProviderConfig(account Account) (upstreamProviderCostConfig, bool) {
+func upstreamCostProviderConfig(account Account) (UpstreamCostProviderConfig, bool) {
 	raw, ok := account.Extra["upstream_provider"]
 	if !ok || raw == nil {
-		return upstreamProviderCostConfig{}, false
+		return UpstreamCostProviderConfig{}, false
 	}
 	cfg, ok := raw.(map[string]any)
 	if !ok {
-		return upstreamProviderCostConfig{}, false
+		return UpstreamCostProviderConfig{}, false
 	}
 	baseURL := strings.TrimSpace(stringFromAny(cfg["base_url"]))
 	if baseURL == "" {
-		return upstreamProviderCostConfig{}, false
+		return UpstreamCostProviderConfig{}, false
 	}
 	providerType := strings.ToLower(strings.TrimSpace(stringFromAny(cfg["type"])))
 	if providerType == "" {
@@ -334,11 +363,16 @@ func upstreamCostProviderConfig(account Account) (upstreamProviderCostConfig, bo
 	if poolName == "" {
 		poolName = upstreamPoolNameFromURL(normalizedURL)
 	}
-	return upstreamProviderCostConfig{
-		ProviderType: providerType,
-		BaseURL:      baseURL,
-		PoolKey:      poolKey,
-		PoolName:     poolName,
+	return UpstreamCostProviderConfig{
+		ProviderType:      providerType,
+		BaseURL:           baseURL,
+		NormalizedBaseURL: normalizedURL,
+		PoolKey:           poolKey,
+		PoolName:          poolName,
+		AccessToken:       strings.TrimSpace(stringFromAny(cfg["access_token"])),
+		UserID:            int64FromUpstreamCostAny(cfg["user_id"]),
+		Email:             strings.TrimSpace(stringFromAny(cfg["email"])),
+		Password:          stringFromAny(cfg["password"]),
 	}, true
 }
 
@@ -389,7 +423,7 @@ func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, 
 			COALESCE(SUM(cache_creation_tokens + cache_read_tokens), 0) AS cache_tokens,
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
-			COALESCE(SUM(COALESCE(account_stats_cost, total_cost)), 0) AS upstream_cost,
+			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
 			COALESCE(SUM(actual_cost), 0) AS user_cost
 		FROM usage_logs
 		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
@@ -437,7 +471,7 @@ func (s *UpstreamCostService) queryAccountTrend(ctx context.Context, startTime, 
 			COALESCE(SUM(cache_creation_tokens + cache_read_tokens), 0) AS cache_tokens,
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
-			COALESCE(SUM(COALESCE(account_stats_cost, total_cost)), 0) AS upstream_cost,
+			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
 			COALESCE(SUM(actual_cost), 0) AS user_cost
 		FROM usage_logs
 		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
@@ -484,7 +518,7 @@ func (s *UpstreamCostService) queryAccountModels(ctx context.Context, startTime,
 			COUNT(*) AS requests,
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
-			COALESCE(SUM(COALESCE(account_stats_cost, total_cost)), 0) AS upstream_cost,
+			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
 			COALESCE(SUM(actual_cost), 0) AS user_cost
 		FROM usage_logs
 		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
@@ -626,6 +660,27 @@ func stringFromAny(v any) string {
 		return strconv.FormatFloat(value, 'f', -1, 64)
 	default:
 		return ""
+	}
+}
+
+func int64FromUpstreamCostAny(v any) int64 {
+	switch value := v.(type) {
+	case int:
+		return int64(value)
+	case int64:
+		return value
+	case int32:
+		return int64(value)
+	case float64:
+		return int64(value)
+	case json.Number:
+		n, _ := value.Int64()
+		return n
+	case string:
+		n, _ := strconv.ParseInt(strings.TrimSpace(value), 10, 64)
+		return n
+	default:
+		return 0
 	}
 }
 
