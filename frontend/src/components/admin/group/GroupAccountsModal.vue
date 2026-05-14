@@ -235,69 +235,79 @@
               添加账号
             </h4>
             <p class="text-xs text-gray-500 dark:text-gray-400">
-              只搜索 {{ platformLabel(group.platform) }} 平台账号，避免跨平台误绑。
+              下拉选择 {{ platformLabel(group.platform) }} 平台账号，避免跨平台误绑。
             </p>
           </div>
           <button
             type="button"
             class="btn btn-secondary"
             :disabled="candidateLoading"
-            @click="searchCandidates"
+            @click="loadCandidateAccounts"
           >
             <Icon
-              name="search"
+              name="refresh"
               size="sm"
               :class="candidateLoading ? 'animate-spin' : ''"
             />
-            搜索
+            刷新
           </button>
         </div>
-        <input
-          v-model="candidateSearch"
-          type="text"
-          class="input"
-          placeholder="输入账号名称或 ID 搜索可添加账号"
-          @input="handleCandidateSearchInput"
-          @keydown.enter.prevent="searchCandidates"
-        />
+
+        <div class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+          <select
+            v-model.number="selectedCandidateId"
+            class="input"
+            :disabled="candidateLoading || candidateAccounts.length === 0"
+          >
+            <option :value="0" disabled>
+              {{
+                candidateLoading
+                  ? "正在加载可添加账号..."
+                  : candidateAccounts.length > 0
+                    ? "选择要添加的账号"
+                    : "没有可添加账号"
+              }}
+            </option>
+            <option
+              v-for="account in candidateAccounts"
+              :key="account.id"
+              :value="account.id"
+            >
+              #{{ account.id }} · {{ account.name }} ·
+              {{ formatAccountType(account.type) }} ·
+              {{ accountStatusLabel(account.status) }}
+            </option>
+          </select>
+          <button
+            type="button"
+            class="btn btn-primary"
+            :disabled="
+              !selectedCandidate ||
+              candidateLoading ||
+              isUpdating(selectedCandidate.id)
+            "
+            @click="addSelectedAccount"
+          >
+            <Icon name="plus" size="sm" />
+            {{
+              selectedCandidate && isUpdating(selectedCandidate.id)
+                ? "处理中"
+                : "添加"
+            }}
+          </button>
+        </div>
 
         <div
           v-if="candidateLoading"
-          class="py-4 text-sm text-gray-500 dark:text-gray-400"
+          class="py-2 text-sm text-gray-500 dark:text-gray-400"
         >
-          搜索中...
+          加载可添加账号中...
         </div>
         <div
-          v-else-if="candidateSearched && candidateAccounts.length === 0"
-          class="py-4 text-sm text-gray-500 dark:text-gray-400"
+          v-else-if="candidateAccounts.length === 0"
+          class="py-2 text-sm text-gray-500 dark:text-gray-400"
         >
-          没有找到可添加账号
-        </div>
-        <div v-else-if="candidateAccounts.length > 0" class="grid gap-2 md:grid-cols-2">
-          <div
-            v-for="account in candidateAccounts"
-            :key="account.id"
-            class="flex items-center justify-between gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2 dark:border-dark-600 dark:bg-dark-800"
-          >
-            <div class="min-w-0">
-              <div class="truncate text-sm font-medium text-gray-900 dark:text-white">
-                {{ account.name }}
-              </div>
-              <div class="text-xs text-gray-500 dark:text-gray-400">
-                #{{ account.id }} · {{ formatAccountType(account.type) }} ·
-                {{ accountStatusLabel(account.status) }}
-              </div>
-            </div>
-            <button
-              type="button"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-primary-600 transition-colors hover:bg-primary-50 disabled:cursor-not-allowed disabled:opacity-60 dark:text-primary-400 dark:hover:bg-primary-900/20"
-              :disabled="isUpdating(account.id)"
-              @click="addAccount(account)"
-            >
-              <Icon name="plus" size="xs" />
-              {{ isUpdating(account.id) ? "处理中" : "添加" }}
-            </button>
-          </div>
+          当前没有可添加账号
         </div>
       </section>
     </div>
@@ -337,9 +347,8 @@ const boundAccounts = ref<Account[]>([]);
 const candidateResults = ref<Account[]>([]);
 const boundLoading = ref(false);
 const candidateLoading = ref(false);
-const candidateSearched = ref(false);
 const boundSearch = ref("");
-const candidateSearch = ref("");
+const selectedCandidateId = ref(0);
 const updatingAccountIds = ref<Set<number>>(new Set());
 const boundPagination = reactive({
   page: 1,
@@ -349,7 +358,6 @@ const boundPagination = reactive({
 });
 
 let boundSearchTimer: ReturnType<typeof setTimeout> | null = null;
-let candidateSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
 const modalTitle = computed(() =>
   props.group ? `管理分组账号：${props.group.name}` : "管理分组账号",
@@ -367,6 +375,10 @@ const candidateAccounts = computed(() => {
     return !boundAccountIdSet.value.has(account.id);
   });
 });
+
+const selectedCandidate = computed(() =>
+  candidateAccounts.value.find((account) => account.id === selectedCandidateId.value) || null,
+);
 
 const platformLabel = (platform: GroupPlatform | string) => {
   switch (platform) {
@@ -459,6 +471,7 @@ const loadBoundAccounts = async () => {
     boundAccounts.value = response.items;
     boundPagination.total = response.total;
     boundPagination.pages = response.pages;
+    syncSelectedCandidate();
   } catch (error: any) {
     appStore.showError(error.message || "加载分组账号失败");
   } finally {
@@ -466,21 +479,42 @@ const loadBoundAccounts = async () => {
   }
 };
 
-const searchCandidates = async () => {
+const syncSelectedCandidate = () => {
+  if (
+    selectedCandidateId.value > 0 &&
+    candidateAccounts.value.some((account) => account.id === selectedCandidateId.value)
+  ) {
+    return;
+  }
+  selectedCandidateId.value = candidateAccounts.value[0]?.id || 0;
+};
+
+const loadCandidateAccounts = async () => {
   if (!props.group) return;
   candidateLoading.value = true;
-  candidateSearched.value = true;
   try {
-    const response = await adminAPI.accounts.list(1, 50, {
+    const pageSize = 200;
+    const first = await adminAPI.accounts.list(1, pageSize, {
       platform: props.group.platform,
-      search: candidateSearch.value.trim() || undefined,
       sort_by: "name",
       sort_order: "asc",
     });
-    candidateResults.value = response.items;
+    const items = [...first.items];
+    const totalPages = Math.min(first.pages || 1, 5);
+    for (let page = 2; page <= totalPages; page += 1) {
+      const response = await adminAPI.accounts.list(page, pageSize, {
+        platform: props.group.platform,
+        sort_by: "name",
+        sort_order: "asc",
+      });
+      items.push(...response.items);
+    }
+    candidateResults.value = items;
+    syncSelectedCandidate();
   } catch (error: any) {
-    appStore.showError(error.message || "搜索账号失败");
+    appStore.showError(error.message || "加载可添加账号失败");
     candidateResults.value = [];
+    selectedCandidateId.value = 0;
   } finally {
     candidateLoading.value = false;
   }
@@ -493,15 +527,6 @@ const handleBoundSearchInput = () => {
   boundSearchTimer = setTimeout(() => {
     boundPagination.page = 1;
     loadBoundAccounts();
-  }, 300);
-};
-
-const handleCandidateSearchInput = () => {
-  if (candidateSearchTimer) {
-    clearTimeout(candidateSearchTimer);
-  }
-  candidateSearchTimer = setTimeout(() => {
-    searchCandidates();
   }, 300);
 };
 
@@ -526,9 +551,7 @@ const updateAccountGroupIDs = async (
       ...(confirmedMixedChannelRisk ? { confirm_mixed_channel_risk: true } : {}),
     });
     await loadBoundAccounts();
-    if (candidateSearched.value) {
-      await searchCandidates();
-    }
+    await loadCandidateAccounts();
     emit("success");
     return true;
   } catch (error: any) {
@@ -546,6 +569,11 @@ const updateAccountGroupIDs = async (
   } finally {
     setUpdating(account.id, false);
   }
+};
+
+const addSelectedAccount = async () => {
+  if (!selectedCandidate.value) return;
+  await addAccount(selectedCandidate.value);
 };
 
 const addAccount = async (account: Account) => {
@@ -572,9 +600,8 @@ const removeAccount = async (account: Account) => {
 const resetState = () => {
   boundAccounts.value = [];
   candidateResults.value = [];
-  candidateSearched.value = false;
   boundSearch.value = "";
-  candidateSearch.value = "";
+  selectedCandidateId.value = 0;
   boundPagination.page = 1;
   boundPagination.total = 0;
   boundPagination.pages = 0;
@@ -582,10 +609,6 @@ const resetState = () => {
   if (boundSearchTimer) {
     clearTimeout(boundSearchTimer);
     boundSearchTimer = null;
-  }
-  if (candidateSearchTimer) {
-    clearTimeout(candidateSearchTimer);
-    candidateSearchTimer = null;
   }
 };
 
@@ -600,6 +623,7 @@ watch(
     if (show && props.group) {
       resetState();
       loadBoundAccounts();
+      loadCandidateAccounts();
     }
   },
 );

@@ -11,11 +11,6 @@
               <option value="lastMonth">{{ t('admin.upstreamCost.lastMonth') }}</option>
               <option value="90d">{{ t('admin.upstreamCost.last90d') }}</option>
             </select>
-            <!-- Exchange Rate -->
-            <div class="flex items-center gap-1.5">
-              <label class="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{{ t('admin.upstreamCost.exchangeRate') }}</label>
-              <input v-model.number="exchangeRate" type="number" step="0.01" min="0.01" class="input w-20 text-xs text-center" />
-            </div>
             <!-- Global P/L badge -->
             <span v-if="globalSummary.hasData" class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" :class="globalSummary.profitRMB >= 0 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'">
               {{ t('admin.upstreamCost.profitLoss') }}: {{ globalSummary.profitRMB >= 0 ? '+' : '' }}¥{{ globalSummary.profitRMB.toFixed(2) }}
@@ -317,9 +312,6 @@ import { useAppStore } from '@/stores/app'
 const { t } = useI18n()
 const appStore = useAppStore()
 
-// --- Exchange Rate (USD → CNY) ---
-const exchangeRate = ref(7.2)
-
 // --- Date Range ---
 const dateRange = ref('30d')
 
@@ -446,36 +438,6 @@ async function saveConfig() {
   }
 }
 
-// --- Plan-based conversion: group_id → ¥ per $1 of usage ---
-interface PlanConversion { dailyRateRMB: number; dailyLimitUSD: number; factor: number }
-const planConversionMap = ref<Map<number, PlanConversion>>(new Map())
-
-async function loadPlans() {
-  try {
-    const [plansResp, groups] = await Promise.all([
-      adminPaymentAPI.getPlans(),
-      adminAPI.groups.getAll(),
-    ])
-    const plans = (plansResp as any)?.data ?? plansResp ?? []
-    if (!Array.isArray(plans)) return
-    // Build group_id → daily_limit_usd map from groups
-    const groupLimits = new Map<number, number>()
-    for (const g of (groups || [])) {
-      if (g.daily_limit_usd && g.daily_limit_usd > 0) groupLimits.set(g.id, g.daily_limit_usd)
-    }
-    const map = new Map<number, PlanConversion>()
-    for (const p of plans) {
-      const dailyLimitUSD = groupLimits.get(p.group_id) || 0
-      const dailyRateRMB = p.validity_days > 0 ? p.price / p.validity_days : 0
-      const factor = dailyLimitUSD > 0 ? dailyRateRMB / dailyLimitUSD : 0
-      map.set(p.group_id, { dailyRateRMB, dailyLimitUSD, factor })
-    }
-    planConversionMap.value = map
-  } catch (err: any) {
-    console.error('Failed to load plans:', err)
-  }
-}
-
 // --- Cost results ---
 interface ChannelCostResult {
   userInfo: UpstreamUserInfo
@@ -489,7 +451,7 @@ interface ChannelCostResult {
   trend: TrendDataPoint[]
 }
 
-const CACHE_KEY = 'upstream-cost-cache-v3'
+const CACHE_KEY = 'upstream-cost-cache-v4'
 
 const costResults = reactive<Record<number, ChannelCostResult>>({})
 const fetchingChannels = reactive<Record<number, boolean>>({})
@@ -524,9 +486,9 @@ const globalSummary = computed(() => {
   if (localSummary.value) {
     const totals = localSummary.value.totals
     const upstreamCost = totals.upstream_cost
-    const upstreamCostRMB = upstreamCost * exchangeRate.value
+    const upstreamCostRMB = upstreamCost
     const internalRevenue = totals.user_cost
-    const internalBillingRMB = internalRevenue * exchangeRate.value
+    const internalBillingRMB = internalRevenue
     const profitRMB = internalBillingRMB - upstreamCostRMB
     const marginPct = upstreamCostRMB > 0 ? (profitRMB / upstreamCostRMB) * 100 : 0
     return { hasData: localSummary.value.pools.length > 0, upstreamCost, upstreamCostRMB, internalRevenue, internalBillingRMB, marginPct, profitRMB }
@@ -536,7 +498,7 @@ const globalSummary = computed(() => {
   const upstreamCost = results.reduce((s, r) => s + r.upstreamCost, 0)
   const upstreamCostRMB = results.reduce((s, r) => s + getUpstreamCostRMB(r), 0)
   const internalRevenue = results.reduce((s, r) => s + r.internalRevenue, 0)
-  const internalBillingRMB = results.reduce((s, r) => s + r.internalBillingRMB, 0)
+  const internalBillingRMB = results.reduce((s, r) => s + getRevenueRMB(r), 0)
   const profitRMB = internalBillingRMB - upstreamCostRMB
   const marginPct = upstreamCostRMB > 0 ? (profitRMB / upstreamCostRMB) * 100 : 0
   return { hasData: true, upstreamCost, upstreamCostRMB, internalRevenue, internalBillingRMB, marginPct, profitRMB }
@@ -544,12 +506,12 @@ const globalSummary = computed(() => {
 
 function getUpstreamCostRMB(result: ChannelCostResult | null): number {
   if (!result) return 0
-  return result.upstreamCost * exchangeRate.value
+  return result.upstreamCost
 }
 
 function getRevenueRMB(result: ChannelCostResult | null): number {
   if (!result) return 0
-  return result.internalRevenue * exchangeRate.value
+  return result.internalRevenue
 }
 
 function getProfitRMB(result: ChannelCostResult | null): number {
@@ -615,18 +577,14 @@ async function fetchSingleChannelCost(accountId: number) {
     const mergedTrend = [...trendMap.values()].sort((a, b) => a.date.localeCompare(b.date))
     const upstreamCost = st.quota_usd
     const internalRevenue = mergedTrend.reduce((s, pt) => s + pt.actual_cost, 0)
-    // Per-group proportional RMB billing based on plan pricing
-    let internalBillingRMB = 0
     const groupActualCosts: Record<number, number> = {}
     for (let i = 0; i < groupIds.length; i++) {
       const gid = groupIds[i]
       const resp = trendResults[i] as { trend: TrendDataPoint[] }
       const groupCost = (resp.trend || []).reduce((s, pt) => s + pt.actual_cost, 0)
       groupActualCosts[gid] = groupCost
-      const conv = planConversionMap.value.get(gid)
-      if (conv && conv.factor > 0) internalBillingRMB += groupCost * conv.factor
     }
-    internalBillingRMB = Math.round(internalBillingRMB * 100) / 100
+    const internalBillingRMB = Math.round(internalRevenue * 100) / 100
     const profitLoss = internalRevenue - upstreamCost
     const marginPct = upstreamCost > 0 ? (profitLoss / upstreamCost) * 100 : 0
     costResults[accountId] = { userInfo: ui, stat: st, upstreamCost, internalRevenue, internalBillingRMB, groupActualCosts, profitLoss, marginPct, trend: mergedTrend }
@@ -743,7 +701,7 @@ function localAccountToResult(account: UpstreamCostAccountSummary): ChannelCostR
     stat: { quota: Math.round(account.upstream_cost * 500000), quota_usd: account.upstream_cost, rpm: 0, tpm: 0 },
     upstreamCost: account.upstream_cost,
     internalRevenue: account.user_cost,
-    internalBillingRMB: account.user_cost * exchangeRate.value,
+    internalBillingRMB: account.user_cost,
     groupActualCosts: {},
     profitLoss: account.profit,
     marginPct: account.upstream_cost > 0 ? (account.profit / account.upstream_cost) * 100 : 0,
@@ -842,7 +800,7 @@ function formatTime(ts: number): string {
 
 onMounted(async () => {
   loadCache()
-  await Promise.all([loadAccounts(), loadPlans()])
+  await loadAccounts()
   const configured = accounts.value.filter(acc => !!getUpstreamCfg(acc))
   if (configured.length > 0) {
     fetchAllChannelCosts()

@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,8 +36,10 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 			GroupIDs:       []int64{101},
 			Extra: map[string]any{
 				"upstream_provider": map[string]any{
-					"type":     "sub2api",
-					"base_url": "https://api.foxnio.com/",
+					"type":         "sub2api",
+					"base_url":     "https://api.foxnio.com/",
+					"email":        "shared@example.com",
+					"access_token": "not-used-for-sub2api",
 				},
 			},
 		},
@@ -51,6 +54,7 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 				"upstream_provider": map[string]any{
 					"type":     "sub2api",
 					"base_url": "https://api.foxnio.com",
+					"email":    "shared@example.com",
 				},
 			},
 		},
@@ -96,7 +100,7 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 	require.Len(t, summary.Pools, 1)
 
 	pool := summary.Pools[0]
-	require.Equal(t, "sub2api|https://api.foxnio.com", pool.PoolKey)
+	require.True(t, strings.HasPrefix(pool.PoolKey, "sub2api|https://api.foxnio.com|identity:"), pool.PoolKey)
 	require.Equal(t, "api.foxnio.com", pool.PoolName)
 	require.Equal(t, 2, pool.AccountCount)
 	require.InDelta(t, 19.0, pool.UpstreamCost, 0.000001)
@@ -108,6 +112,38 @@ func TestUpstreamCostService_GetLocalSummary_GroupsSharedPoolAndKeepsAccountMult
 	require.InDelta(t, 19.0, pool.Trend[0].UpstreamCost, 0.000001)
 	require.Len(t, pool.Models, 1)
 	require.InDelta(t, 19.0, pool.Models[0].UpstreamCost, 0.000001)
+}
+
+func TestUpstreamCostProviderConfig_AutoPoolKeySplitsSameURLDifferentIdentity(t *testing.T) {
+	accountA := Account{
+		ID:          1,
+		Credentials: map[string]any{"api_key": "sk-flux-org"},
+		Extra: map[string]any{
+			"upstream_provider": map[string]any{
+				"type":     "newapi",
+				"base_url": "https://fluxnode.org/",
+				"user_id":  "612",
+			},
+		},
+	}
+	accountB := Account{
+		ID:          2,
+		Credentials: map[string]any{"api_key": "sk-pixel-plus"},
+		Extra: map[string]any{
+			"upstream_provider": map[string]any{
+				"type":     "newapi",
+				"base_url": "https://fluxnode.org",
+				"user_id":  "612",
+			},
+		},
+	}
+
+	cfgA, ok := upstreamCostProviderConfig(accountA)
+	require.True(t, ok)
+	cfgB, ok := upstreamCostProviderConfig(accountB)
+	require.True(t, ok)
+	require.NotEqual(t, cfgA.PoolKey, cfgB.PoolKey)
+	require.True(t, strings.HasPrefix(cfgA.PoolKey, "newapi|https://fluxnode.org|identity:"), cfgA.PoolKey)
 }
 
 func TestUpstreamCostProviderConfig_ManualPoolKeySplitsSameURL(t *testing.T) {

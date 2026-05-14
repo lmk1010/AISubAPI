@@ -2,7 +2,9 @@ package service
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -129,7 +131,7 @@ type upstreamCostStats struct {
 //
 // The upstream cost is account-cost perspective:
 //
-//	SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1))
+//	SUM(COALESCE(account_stats_cost, total_cost))
 //
 // UserCost is downstream billing perspective:
 //
@@ -322,7 +324,7 @@ func upstreamCostProviderConfig(account Account) (upstreamProviderCostConfig, bo
 		stringFromAny(account.Extra["upstream_pool_key"]),
 	))
 	if poolKey == "" {
-		poolKey = providerType + "|" + normalizedURL
+		poolKey = providerType + "|" + normalizedURL + "|" + upstreamCostPoolIdentity(account, cfg, providerType)
 	}
 	poolName := strings.TrimSpace(firstNonEmptyUpstreamCostString(
 		stringFromAny(cfg["pool_name"]),
@@ -340,6 +342,43 @@ func upstreamCostProviderConfig(account Account) (upstreamProviderCostConfig, bo
 	}, true
 }
 
+func upstreamCostPoolIdentity(account Account, cfg map[string]any, providerType string) string {
+	var source string
+	if key := strings.TrimSpace(stringFromAny(account.Credentials["api_key"])); key != "" {
+		source = providerType + "-api-key:" + key
+	}
+	switch providerType {
+	case "newapi":
+		userID := strings.TrimSpace(stringFromAny(cfg["user_id"]))
+		if source == "" && userID != "" && userID != "0" {
+			source = "newapi-user:" + userID
+			break
+		}
+		if source == "" {
+			token := strings.TrimSpace(stringFromAny(cfg["access_token"]))
+			if token == "" {
+				break
+			}
+			source = "newapi-token:" + token
+			break
+		}
+	case "sub2api":
+		if source == "" {
+			email := strings.ToLower(strings.TrimSpace(stringFromAny(cfg["email"])))
+			if email == "" {
+				break
+			}
+			source = "sub2api-email:" + email
+			break
+		}
+	}
+	if source == "" {
+		source = fmt.Sprintf("%s-account:%d", providerType, account.ID)
+	}
+	sum := sha256.Sum256([]byte(source))
+	return "identity:" + hex.EncodeToString(sum[:])[:12]
+}
+
 func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, endTime time.Time, accountIDs []int64) (map[int64]upstreamCostStats, error) {
 	query := `
 		SELECT
@@ -350,7 +389,7 @@ func (s *UpstreamCostService) queryAccountStats(ctx context.Context, startTime, 
 			COALESCE(SUM(cache_creation_tokens + cache_read_tokens), 0) AS cache_tokens,
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
-			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
+			COALESCE(SUM(COALESCE(account_stats_cost, total_cost)), 0) AS upstream_cost,
 			COALESCE(SUM(actual_cost), 0) AS user_cost
 		FROM usage_logs
 		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
@@ -398,7 +437,7 @@ func (s *UpstreamCostService) queryAccountTrend(ctx context.Context, startTime, 
 			COALESCE(SUM(cache_creation_tokens + cache_read_tokens), 0) AS cache_tokens,
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
-			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
+			COALESCE(SUM(COALESCE(account_stats_cost, total_cost)), 0) AS upstream_cost,
 			COALESCE(SUM(actual_cost), 0) AS user_cost
 		FROM usage_logs
 		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
@@ -445,7 +484,7 @@ func (s *UpstreamCostService) queryAccountModels(ctx context.Context, startTime,
 			COUNT(*) AS requests,
 			COALESCE(SUM(input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens), 0) AS total_tokens,
 			COALESCE(SUM(total_cost), 0) AS standard_cost,
-			COALESCE(SUM(COALESCE(account_stats_cost, total_cost) * COALESCE(account_rate_multiplier, 1)), 0) AS upstream_cost,
+			COALESCE(SUM(COALESCE(account_stats_cost, total_cost)), 0) AS upstream_cost,
 			COALESCE(SUM(actual_cost), 0) AS user_cost
 		FROM usage_logs
 		WHERE created_at >= $1 AND created_at < $2 AND account_id = ANY($3)
