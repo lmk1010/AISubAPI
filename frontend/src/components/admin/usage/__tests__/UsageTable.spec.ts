@@ -10,6 +10,8 @@ const messages: Record<string, string> = {
   'admin.usage.outputCost': 'Output Cost',
   'admin.usage.cacheCreationCost': 'Cache Creation Cost',
   'admin.usage.cacheReadCost': 'Cache Read Cost',
+  'admin.usage.cacheOccupancy': 'Cache Ratio',
+  'admin.usage.cacheTokens': 'Cache Tokens',
   'usage.inputTokenPrice': 'Input price',
   'usage.outputTokenPrice': 'Output price',
   'usage.perMillionTokens': '/ 1M tokens',
@@ -40,6 +42,7 @@ const DataTableStub = {
     <div>
       <div v-for="row in data" :key="row.request_id">
         <slot name="cell-model" :row="row" :value="row.model" />
+        <slot name="cell-tokens" :row="row" />
         <slot name="cell-cost" :row="row" />
       </div>
     </div>
@@ -93,7 +96,7 @@ describe('admin UsageTable tooltip', () => {
       },
     })
 
-    await wrapper.find('.group.relative').trigger('mouseenter')
+    await wrapper.find('[data-test="cost-tooltip-trigger"]').trigger('mouseenter')
     await nextTick()
 
     const text = wrapper.text()
@@ -108,6 +111,47 @@ describe('admin UsageTable tooltip', () => {
     expect(text).toContain('$5.0000 / 1M tokens')
     expect(text).toContain('$30.0000 / 1M tokens')
     expect(text).toContain('$0.069568')
+  })
+
+  it('shows cache ratio for each token row', () => {
+    const row = {
+      request_id: 'req-admin-cache-1',
+      model: 'gpt-5.3-codex',
+      actual_cost: 0,
+      total_cost: 0,
+      account_rate_multiplier: 1,
+      rate_multiplier: 1,
+      input_cost: 0,
+      output_cost: 0,
+      cache_creation_cost: 0,
+      cache_read_cost: 0,
+      input_tokens: 600,
+      output_tokens: 200,
+      cache_creation_tokens: 100,
+      cache_read_tokens: 100,
+      image_count: 0,
+      billing_mode: 'token',
+    }
+
+    const wrapper = mount(UsageTable, {
+      props: {
+        data: [row],
+        loading: false,
+        columns: [],
+      },
+      global: {
+        stubs: {
+          DataTable: DataTableStub,
+          EmptyState: true,
+          Icon: true,
+          Teleport: true,
+        },
+      },
+    })
+
+    const text = wrapper.text()
+    expect(text).toContain('Cache Ratio')
+    expect(text).toContain('20.0%')
   })
 
   it('shows requested and upstream models separately for admin rows', () => {

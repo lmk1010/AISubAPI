@@ -289,6 +289,13 @@ type RateLimit429CooldownSettings struct {
 	CooldownSeconds int  `json:"cooldown_seconds"`
 }
 
+// AdminRateLimitSettings Admin API 速率限制配置 DTO
+type AdminRateLimitSettings struct {
+	Enabled       bool `json:"enabled"`
+	MaxRequests   int  `json:"max_requests"`
+	WindowSeconds int  `json:"window_seconds"`
+}
+
 // StreamTimeoutSettings 流超时处理配置 DTO
 type StreamTimeoutSettings struct {
 	Enabled                bool   `json:"enabled"`

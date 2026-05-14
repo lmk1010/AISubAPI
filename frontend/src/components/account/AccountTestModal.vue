@@ -91,6 +91,9 @@
           <div v-else-if="status === 'connecting'" class="flex items-center gap-2 text-yellow-400">
             <Icon name="refresh" size="sm" class="animate-spin" :stroke-width="2" />
             <span>{{ t('admin.accounts.connectingToApi') }}</span>
+            <span v-if="elapsedMs !== null" class="text-gray-400">
+              {{ t('admin.accounts.elapsedTime', { time: formatDuration(elapsedMs) }) }}
+            </span>
           </div>
 
           <!-- Output Lines -->
@@ -110,6 +113,9 @@
           >
             <Icon name="check" size="sm" :stroke-width="2" />
             <span>{{ t('admin.accounts.testCompleted') }}</span>
+            <span v-if="durationMs !== null" class="text-cyan-300">
+              {{ t('admin.accounts.elapsedTime', { time: formatDuration(durationMs) }) }}
+            </span>
           </div>
           <div
             v-else-if="status === 'error'"
@@ -183,6 +189,10 @@
             <Icon name="grid" size="sm" :stroke-width="2" />
             {{ t('admin.accounts.testModel') }}
           </span>
+          <span v-if="elapsedMs !== null" class="flex items-center gap-1 text-cyan-600 dark:text-cyan-400">
+            <Icon name="clock" size="sm" :stroke-width="2" />
+            {{ t('admin.accounts.elapsedTime', { time: formatDuration(elapsedMs) }) }}
+          </span>
         </div>
         <span class="flex items-center gap-1">
           <Icon name="chat" size="sm" :stroke-width="2" />
@@ -242,7 +252,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, watch, nextTick } from 'vue'
+import { computed, ref, watch, nextTick, onBeforeUnmount } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BaseDialog from '@/components/common/BaseDialog.vue'
 import Select from '@/components/common/Select.vue'
@@ -284,6 +294,11 @@ const selectedModelId = ref('')
 const testPrompt = ref('')
 const loadingModels = ref(false)
 let abortController: AbortController | null = null
+const elapsedMs = ref<number | null>(null)
+const ttftMs = ref<number | null>(null)
+const durationMs = ref<number | null>(null)
+let testStartedAt = 0
+let timingTimer: ReturnType<typeof setInterval> | null = null
 const generatedImages = ref<PreviewImage[]>([])
 const testMode = ref<'default' | 'compact'>('default')
 const isOpenAIAccount = computed(() => props.account?.platform === 'openai')
@@ -377,6 +392,7 @@ const resetState = () => {
   errorMessage.value = ''
   generatedImages.value = []
   previewImageUrl.value = ''
+  resetTiming()
 }
 
 const handleClose = () => {
@@ -389,6 +405,7 @@ const abortStream = () => {
     abortController.abort()
     abortController = null
   }
+  stopTimingTimer()
 }
 
 const addLine = (text: string, className: string = 'text-gray-300') => {
@@ -403,16 +420,76 @@ const scrollToBottom = async () => {
   }
 }
 
+const formatDuration = (ms: number | null | undefined) => {
+  if (ms === null || ms === undefined) return '-'
+  const normalized = Math.max(0, Math.round(ms))
+  if (normalized < 1000) return `${normalized} ms`
+  return `${(normalized / 1000).toFixed(normalized < 10000 ? 2 : 1)} s`
+}
+
+const getTimingValue = (value: unknown) => {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  return Math.max(0, Math.round(value))
+}
+
+const stopTimingTimer = () => {
+  if (timingTimer) {
+    clearInterval(timingTimer)
+    timingTimer = null
+  }
+}
+
+const resetTiming = () => {
+  stopTimingTimer()
+  testStartedAt = 0
+  elapsedMs.value = null
+  ttftMs.value = null
+  durationMs.value = null
+}
+
+const startTiming = () => {
+  stopTimingTimer()
+  testStartedAt = performance.now()
+  elapsedMs.value = 0
+  ttftMs.value = null
+  durationMs.value = null
+  timingTimer = setInterval(() => {
+    elapsedMs.value = Math.round(performance.now() - testStartedAt)
+  }, 250)
+}
+
+const recordFirstResponseLatency = (serverTTFT?: number | null) => {
+  if (ttftMs.value !== null) return
+
+  const fallback = testStartedAt > 0 ? Math.round(performance.now() - testStartedAt) : null
+  const measured = serverTTFT ?? fallback
+  if (measured === null) return
+
+  ttftMs.value = measured
+  addLine(t('admin.accounts.firstResponseLatency', { time: formatDuration(measured) }), 'text-cyan-300')
+}
+
+const finalizeTiming = (serverDuration?: number | null) => {
+  stopTimingTimer()
+  const fallback = testStartedAt > 0 ? Math.round(performance.now() - testStartedAt) : null
+  const measured = serverDuration ?? fallback
+  if (measured === null) return
+
+  durationMs.value = measured
+  elapsedMs.value = measured
+  addLine(t('admin.accounts.totalDuration', { time: formatDuration(measured) }), 'text-cyan-300')
+}
+
 const startTest = async () => {
   if (!props.account || !selectedModelId.value) return
 
+  abortStream()
   resetState()
   status.value = 'connecting'
+  startTiming()
   addLine(t('admin.accounts.startingTestForAccount', { name: props.account.name }), 'text-blue-400')
   addLine(t('admin.accounts.testAccountTypeLabel', { type: props.account.type }), 'text-gray-400')
   addLine('', 'text-gray-300')
-
-  abortStream()
 
   abortController = new AbortController()
 
@@ -469,14 +546,20 @@ const startTest = async () => {
         }
       }
     }
+
+    if (status.value === 'connecting') {
+      throw new Error('Stream ended before test completed')
+    }
   } catch (error: unknown) {
     if (error instanceof DOMException && error.name === 'AbortError') {
       status.value = 'idle'
+      stopTimingTimer()
       return
     }
     status.value = 'error'
     const msg = error instanceof Error ? error.message : 'Unknown error'
     errorMessage.value = msg
+    finalizeTiming()
     addLine(`Error: ${msg}`, 'text-red-400')
   }
 }
@@ -489,6 +572,8 @@ const handleEvent = (event: {
   error?: string
   image_url?: string
   mime_type?: string
+  ttft_ms?: number
+  duration_ms?: number
 }) => {
   switch (event.type) {
     case 'test_start':
@@ -508,6 +593,7 @@ const handleEvent = (event: {
 
     case 'content':
       if (event.text) {
+        recordFirstResponseLatency(getTimingValue(event.ttft_ms))
         streamingContent.value += event.text
         scrollToBottom()
       }
@@ -515,6 +601,7 @@ const handleEvent = (event: {
 
     case 'image':
       if (event.image_url) {
+        recordFirstResponseLatency(getTimingValue(event.ttft_ms))
         generatedImages.value.push({
           url: event.image_url,
           mimeType: event.mime_type
@@ -529,6 +616,13 @@ const handleEvent = (event: {
         addLine(streamingContent.value, 'text-green-300')
         streamingContent.value = ''
       }
+      {
+        const serverTTFT = getTimingValue(event.ttft_ms)
+        if (serverTTFT !== null) {
+          recordFirstResponseLatency(serverTTFT)
+        }
+      }
+      finalizeTiming(getTimingValue(event.duration_ms))
       if (event.success) {
         status.value = 'success'
       } else {
@@ -544,6 +638,13 @@ const handleEvent = (event: {
         addLine(streamingContent.value, 'text-green-300')
         streamingContent.value = ''
       }
+      {
+        const serverTTFT = getTimingValue(event.ttft_ms)
+        if (serverTTFT !== null) {
+          recordFirstResponseLatency(serverTTFT)
+        }
+      }
+      finalizeTiming(getTimingValue(event.duration_ms))
       break
   }
 }
@@ -552,6 +653,10 @@ const copyOutput = () => {
   const text = outputLines.value.map((l) => l.text).join('\n')
   copyToClipboard(text, t('admin.accounts.outputCopied'))
 }
+
+onBeforeUnmount(() => {
+  abortStream()
+})
 </script>
 
 <style>

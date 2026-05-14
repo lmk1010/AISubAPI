@@ -153,3 +153,36 @@ func TestUpdateAccount_EmptyExtraPayloadCanClearQuotaLimits(t *testing.T) {
 	require.NotContains(t, repo.account.Extra, "quota_weekly_limit")
 	require.Len(t, repo.account.Extra, 0)
 }
+
+func TestUpdateAccount_PreservesSensitiveCredentialsWhenMaskedOrOmitted(t *testing.T) {
+	accountID := int64(104)
+	repo := &updateAccountOveragesRepoStub{
+		account: &Account{
+			ID:       accountID,
+			Platform: PlatformOpenAI,
+			Type:     AccountTypeAPIKey,
+			Status:   StatusActive,
+			Credentials: map[string]any{
+				"api_key":       "sk-real-secret",
+				"refresh_token": "rt-real-secret",
+				"base_url":      "https://old.example.com",
+			},
+			Extra: map[string]any{},
+		},
+	}
+
+	svc := &adminServiceImpl{accountRepo: repo}
+	updated, err := svc.UpdateAccount(context.Background(), accountID, &UpdateAccountInput{
+		Credentials: map[string]any{
+			"api_key":       "****cret",
+			"base_url":      "https://new.example.com",
+			"model_mapping": map[string]any{"gpt-5.4": "gpt-5.4"},
+		},
+	})
+
+	require.NoError(t, err)
+	require.Equal(t, "sk-real-secret", updated.Credentials["api_key"])
+	require.Equal(t, "rt-real-secret", updated.Credentials["refresh_token"])
+	require.Equal(t, "https://new.example.com", updated.Credentials["base_url"])
+	require.Equal(t, map[string]any{"gpt-5.4": "gpt-5.4"}, updated.Credentials["model_mapping"])
+}

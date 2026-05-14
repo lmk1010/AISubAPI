@@ -194,50 +194,61 @@
           </template>
 
           <template #cell-account_count="{ row }">
-            <div class="space-y-0.5 text-xs">
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">{{
-                  t("admin.groups.accountsAvailable")
-                }}</span>
-                <span
-                  class="ml-1 font-medium text-emerald-600 dark:text-emerald-400"
-                  >{{
-                    (row.active_account_count || 0) -
-                    (row.rate_limited_account_count || 0)
-                  }}</span
-                >
-                <span
-                  class="ml-1 inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
-                  >{{ t("admin.groups.accountsUnit") }}</span
-                >
+            <button
+              type="button"
+              class="group -mx-2 -my-1.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-primary-50 focus:outline-none focus:ring-2 focus:ring-primary-500/40 dark:hover:bg-primary-900/20"
+              :title="'查看/编辑分组账号'"
+              @click="openAccountsModal(row)"
+            >
+              <div class="space-y-0.5 text-xs">
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">{{
+                    t("admin.groups.accountsAvailable")
+                  }}</span>
+                  <span
+                    class="ml-1 font-medium text-emerald-600 dark:text-emerald-400"
+                    >{{
+                      (row.active_account_count || 0) -
+                      (row.rate_limited_account_count || 0)
+                    }}</span
+                  >
+                  <span
+                    class="ml-1 inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
+                    >{{ t("admin.groups.accountsUnit") }}</span
+                  >
+                </div>
+                <div v-if="row.rate_limited_account_count">
+                  <span class="text-gray-500 dark:text-gray-400">{{
+                    t("admin.groups.accountsRateLimited")
+                  }}</span>
+                  <span
+                    class="ml-1 font-medium text-amber-600 dark:text-amber-400"
+                    >{{ row.rate_limited_account_count }}</span
+                  >
+                  <span
+                    class="ml-1 inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
+                    >{{ t("admin.groups.accountsUnit") }}</span
+                  >
+                </div>
+                <div>
+                  <span class="text-gray-500 dark:text-gray-400">{{
+                    t("admin.groups.accountsTotal")
+                  }}</span>
+                  <span
+                    class="ml-1 font-medium text-gray-700 dark:text-gray-300"
+                    >{{ row.account_count || 0 }}</span
+                  >
+                  <span
+                    class="ml-1 inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
+                    >{{ t("admin.groups.accountsUnit") }}</span
+                  >
+                  <span
+                    class="ml-2 font-medium text-primary-600 opacity-0 transition-opacity group-hover:opacity-100 dark:text-primary-400 md:opacity-100"
+                    >管理</span
+                  >
+                </div>
               </div>
-              <div v-if="row.rate_limited_account_count">
-                <span class="text-gray-500 dark:text-gray-400">{{
-                  t("admin.groups.accountsRateLimited")
-                }}</span>
-                <span
-                  class="ml-1 font-medium text-amber-600 dark:text-amber-400"
-                  >{{ row.rate_limited_account_count }}</span
-                >
-                <span
-                  class="ml-1 inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
-                  >{{ t("admin.groups.accountsUnit") }}</span
-                >
-              </div>
-              <div>
-                <span class="text-gray-500 dark:text-gray-400">{{
-                  t("admin.groups.accountsTotal")
-                }}</span>
-                <span
-                  class="ml-1 font-medium text-gray-700 dark:text-gray-300"
-                  >{{ row.account_count || 0 }}</span
-                >
-                <span
-                  class="ml-1 inline-flex items-center rounded bg-gray-100 px-1.5 py-0.5 font-medium text-gray-800 dark:bg-dark-600 dark:text-gray-300"
-                  >{{ t("admin.groups.accountsUnit") }}</span
-                >
-              </div>
-            </div>
+            </button>
           </template>
 
           <template #cell-capacity="{ row }">
@@ -2830,6 +2841,14 @@
       @close="showRPMOverridesModal = false"
       @success="loadGroups"
     />
+
+    <!-- Group Accounts Modal -->
+    <GroupAccountsModal
+      :show="showAccountsModal"
+      :group="accountsGroup"
+      @close="closeAccountsModal"
+      @success="loadGroups"
+    />
   </AppLayout>
 </template>
 
@@ -2853,6 +2872,7 @@ import PlatformIcon from "@/components/common/PlatformIcon.vue";
 import Icon from "@/components/icons/Icon.vue";
 import GroupRateMultipliersModal from "@/components/admin/group/GroupRateMultipliersModal.vue";
 import GroupRPMOverridesModal from "@/components/admin/group/GroupRPMOverridesModal.vue";
+import GroupAccountsModal from "@/components/admin/group/GroupAccountsModal.vue";
 import GroupCapacityBadge from "@/components/common/GroupCapacityBadge.vue";
 import { VueDraggable } from "vue-draggable-plus";
 import { createStableObjectKeyResolver } from "@/utils/stableObjectKey";
@@ -3095,6 +3115,8 @@ const showRateMultipliersModal = ref(false);
 const rateMultipliersGroup = ref<AdminGroup | null>(null);
 const showRPMOverridesModal = ref(false);
 const rpmOverridesGroup = ref<AdminGroup | null>(null);
+const showAccountsModal = ref(false);
+const accountsGroup = ref<AdminGroup | null>(null);
 const sortableGroups = ref<AdminGroup[]>([]);
 const createMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
 const editMessagesDispatchDefaults = createDefaultMessagesDispatchFormState();
@@ -3906,6 +3928,16 @@ const handleRateMultipliers = (group: AdminGroup) => {
 const handleRPMOverrides = (group: AdminGroup) => {
   rpmOverridesGroup.value = group;
   showRPMOverridesModal.value = true;
+};
+
+const openAccountsModal = (group: AdminGroup) => {
+  accountsGroup.value = group;
+  showAccountsModal.value = true;
+};
+
+const closeAccountsModal = () => {
+  showAccountsModal.value = false;
+  accountsGroup.value = null;
 };
 
 const handleDelete = (group: AdminGroup) => {

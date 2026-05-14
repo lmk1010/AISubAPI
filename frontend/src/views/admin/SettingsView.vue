@@ -185,6 +185,139 @@
               </div>
             </div>
           </div>
+
+          <!-- Admin Rate Limit Settings -->
+          <div class="card">
+            <div
+              class="border-b border-gray-100 px-6 py-4 dark:border-dark-700"
+            >
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
+                {{ t("admin.settings.adminRateLimit.title") }}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                {{ t("admin.settings.adminRateLimit.description") }}
+              </p>
+            </div>
+            <div class="space-y-4 p-6">
+              <!-- Loading -->
+              <div
+                v-if="adminRateLimitLoading"
+                class="flex items-center gap-2 text-gray-500"
+              >
+                <div
+                  class="h-4 w-4 animate-spin rounded-full border-b-2 border-primary-600"
+                ></div>
+                {{ t("common.loading") }}
+              </div>
+              <template v-else>
+                <!-- Enabled Toggle -->
+                <div class="flex items-center justify-between">
+                  <label
+                    class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.adminRateLimit.enabled") }}
+                  </label>
+                  <button
+                    type="button"
+                    :class="[
+                      'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2',
+                      adminRateLimitForm.enabled
+                        ? 'bg-primary-500'
+                        : 'bg-gray-300 dark:bg-dark-600',
+                    ]"
+                    @click="
+                      adminRateLimitForm.enabled = !adminRateLimitForm.enabled
+                    "
+                  >
+                    <span
+                      :class="[
+                        'pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out',
+                        adminRateLimitForm.enabled
+                          ? 'translate-x-5'
+                          : 'translate-x-0',
+                      ]"
+                    />
+                  </button>
+                </div>
+
+                <!-- Max Requests -->
+                <div>
+                  <label
+                    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.adminRateLimit.maxRequests") }}
+                  </label>
+                  <input
+                    v-model.number="adminRateLimitForm.max_requests"
+                    type="number"
+                    min="1"
+                    max="10000"
+                    class="input w-40"
+                    :disabled="!adminRateLimitForm.enabled"
+                  />
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.adminRateLimit.maxRequestsHint") }}
+                  </p>
+                </div>
+
+                <!-- Window Seconds -->
+                <div>
+                  <label
+                    class="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+                  >
+                    {{ t("admin.settings.adminRateLimit.windowSeconds") }}
+                  </label>
+                  <input
+                    v-model.number="adminRateLimitForm.window_seconds"
+                    type="number"
+                    min="1"
+                    max="3600"
+                    class="input w-40"
+                    :disabled="!adminRateLimitForm.enabled"
+                  />
+                  <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    {{ t("admin.settings.adminRateLimit.windowSecondsHint") }}
+                  </p>
+                </div>
+
+                <!-- Save Button -->
+                <div class="flex justify-end">
+                  <button
+                    type="button"
+                    class="btn btn-primary btn-sm"
+                    :disabled="adminRateLimitSaving"
+                    @click="saveAdminRateLimitSettings"
+                  >
+                    <svg
+                      v-if="adminRateLimitSaving"
+                      class="mr-1 h-4 w-4 animate-spin"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        class="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        stroke-width="4"
+                      ></circle>
+                      <path
+                        class="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      ></path>
+                    </svg>
+                    {{
+                      adminRateLimitSaving
+                        ? t("common.saving")
+                        : t("common.save")
+                    }}
+                  </button>
+                </div>
+              </template>
+            </div>
+          </div>
         </div>
         <!-- /Tab: Security — Admin API Key -->
 
@@ -5964,6 +6097,15 @@ const adminApiKeyOperating = ref(false);
 const newAdminApiKey = ref("");
 const subscriptionGroups = ref<AdminGroup[]>([]);
 
+// Admin Rate Limit 状态
+const adminRateLimitLoading = ref(true);
+const adminRateLimitSaving = ref(false);
+const adminRateLimitForm = reactive({
+  enabled: true,
+  max_requests: 60,
+  window_seconds: 60,
+});
+
 // Overload Cooldown (529) 状态
 const overloadCooldownLoading = ref(true);
 const overloadCooldownSaving = ref(false);
@@ -7482,6 +7624,38 @@ function copyNewKey() {
     });
 }
 
+// Admin Rate Limit 方法
+async function loadAdminRateLimitSettings() {
+  adminRateLimitLoading.value = true;
+  try {
+    const settings = await adminAPI.settings.getAdminRateLimitSettings();
+    Object.assign(adminRateLimitForm, settings);
+  } catch (_error: unknown) {
+    // Silent fail - settings will use defaults
+  } finally {
+    adminRateLimitLoading.value = false;
+  }
+}
+
+async function saveAdminRateLimitSettings() {
+  adminRateLimitSaving.value = true;
+  try {
+    const updated = await adminAPI.settings.updateAdminRateLimitSettings({
+      enabled: adminRateLimitForm.enabled,
+      max_requests: Number(adminRateLimitForm.max_requests) || 60,
+      window_seconds: Number(adminRateLimitForm.window_seconds) || 60,
+    });
+    Object.assign(adminRateLimitForm, updated);
+    appStore.showSuccess(t("admin.settings.adminRateLimit.saved"));
+  } catch (error: unknown) {
+    appStore.showError(
+      extractApiErrorMessage(error, t("admin.settings.adminRateLimit.saveError")),
+    );
+  } finally {
+    adminRateLimitSaving.value = false;
+  }
+}
+
 // Overload Cooldown 方法
 async function loadOverloadCooldownSettings() {
   overloadCooldownLoading.value = true;
@@ -8160,6 +8334,7 @@ onMounted(() => {
   loadSettings();
   loadSubscriptionGroups();
   loadAdminApiKey();
+  loadAdminRateLimitSettings();
   loadOverloadCooldownSettings();
   loadRateLimit429CooldownSettings();
   loadStreamTimeoutSettings();

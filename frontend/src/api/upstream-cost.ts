@@ -5,6 +5,14 @@ export interface UpstreamProvider {
   base_url: string
   access_token: string
   user_id: number
+  email?: string
+  password?: string
+}
+
+export interface UpstreamLocalSummaryParams {
+  start_date?: string
+  end_date?: string
+  timezone?: string
 }
 
 export interface UpstreamUserInfo {
@@ -49,6 +57,87 @@ export interface UpstreamLogsResponse {
   items: UpstreamLogItem[]
 }
 
+export interface UpstreamCostTotals {
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  upstream_cost: number
+  user_cost: number
+  profit: number
+}
+
+export interface UpstreamCostTrendPoint {
+  date: string
+  requests: number
+  input_tokens: number
+  output_tokens: number
+  cache_tokens: number
+  total_tokens: number
+  standard_cost: number
+  upstream_cost: number
+  user_cost: number
+}
+
+export interface UpstreamCostModelBreakdown {
+  model: string
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  upstream_cost: number
+  user_cost: number
+}
+
+export interface UpstreamCostAccountSummary {
+  account_id: number
+  account_name: string
+  platform: string
+  status: string
+  group_ids: number[]
+  rate_multiplier: number
+  provider_type: string
+  base_url: string
+  pool_key: string
+  pool_name: string
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  upstream_cost: number
+  user_cost: number
+  profit: number
+  trend: UpstreamCostTrendPoint[]
+  models: UpstreamCostModelBreakdown[]
+}
+
+export interface UpstreamCostPoolSummary {
+  pool_key: string
+  pool_name: string
+  provider_type: string
+  base_url: string
+  account_count: number
+  account_ids: number[]
+  requests: number
+  total_tokens: number
+  standard_cost: number
+  upstream_cost: number
+  user_cost: number
+  profit: number
+  trend: UpstreamCostTrendPoint[]
+  models: UpstreamCostModelBreakdown[]
+  accounts: UpstreamCostAccountSummary[]
+}
+
+export interface UpstreamCostLocalSummary {
+  start_date: string
+  end_date: string
+  totals: UpstreamCostTotals
+  pools: UpstreamCostPoolSummary[]
+}
+
+export async function getLocalSummary(params?: UpstreamLocalSummaryParams): Promise<UpstreamCostLocalSummary> {
+  const { data } = await apiClient.get<UpstreamCostLocalSummary>('/admin/upstream-cost/local-summary', { params })
+  return data
+}
+
 export async function testConnection(provider: UpstreamProvider) {
   const { data } = await apiClient.post('/admin/upstream-cost/test-connection', provider)
   return data
@@ -75,5 +164,5 @@ export async function getLogs(
   return data
 }
 
-export const upstreamCostAPI = { testConnection, getUserInfo, getStats, getLogs }
+export const upstreamCostAPI = { getLocalSummary, testConnection, getUserInfo, getStats, getLogs }
 export default upstreamCostAPI

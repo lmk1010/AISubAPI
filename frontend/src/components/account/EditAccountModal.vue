@@ -2288,6 +2288,27 @@ const allowOverages = ref(false) // For antigravity accounts: enable AI Credits 
 const antigravityModelRestrictionMode = ref<'whitelist' | 'mapping'>('whitelist')
 const antigravityWhitelistModels = ref<string[]>([])
 const antigravityModelMappings = ref<ModelMapping[]>([])
+
+function isMaskedCredentialValue(value: unknown): boolean {
+  return typeof value === 'string' && (value === '****' || /^\*\*\*\*.{4}$/.test(value))
+}
+
+function isSensitiveCredentialKey(key: string): boolean {
+  const lower = key.toLowerCase()
+  return ['access_token', 'refresh_token', 'api_key', 'session_key', 'token', 'secret', 'password', 'setup_token'].includes(lower) ||
+    lower.includes('token') ||
+    lower.includes('secret') ||
+    lower.includes('key') ||
+    lower.includes('password')
+}
+
+function removeMaskedCredentialPlaceholders(credentials: Record<string, unknown>): void {
+  for (const [key, value] of Object.entries(credentials)) {
+    if (isSensitiveCredentialKey(key) && isMaskedCredentialValue(value)) {
+      delete credentials[key]
+    }
+  }
+}
 const tempUnschedEnabled = ref(false)
 const tempUnschedRules = ref<TempUnschedRuleForm[]>([])
 const getModelMappingKey = createStableObjectKeyResolver<ModelMapping>('edit-model-mapping')
@@ -3346,10 +3367,10 @@ const handleSubmit = async () => {
       if (editApiKey.value.trim()) {
         // User provided a new API key
         newCredentials.api_key = editApiKey.value.trim()
-      } else if (currentCredentials.api_key) {
+      } else if (currentCredentials.api_key && !isMaskedCredentialValue(currentCredentials.api_key)) {
         // Preserve existing api_key
         newCredentials.api_key = currentCredentials.api_key
-      } else {
+      } else if (!currentCredentials.api_key) {
         appStore.showError(t('admin.accounts.apiKeyIsRequired'))
         return
       }
@@ -3398,6 +3419,7 @@ const handleSubmit = async () => {
         return
       }
 
+      removeMaskedCredentialPlaceholders(newCredentials)
       updatePayload.credentials = newCredentials
     } else if (props.account.type === 'upstream') {
       const currentCredentials = (props.account.credentials as Record<string, unknown>) || {}
@@ -3416,6 +3438,7 @@ const handleSubmit = async () => {
         return
       }
 
+      removeMaskedCredentialPlaceholders(newCredentials)
       updatePayload.credentials = newCredentials
     } else if ((props.account.platform === 'gemini' || props.account.platform === 'anthropic') && props.account.type === 'service_account') {
       const currentCredentials = (props.account.credentials as Record<string, unknown>) || {}
@@ -3456,6 +3479,7 @@ const handleSubmit = async () => {
         return
       }
 
+      removeMaskedCredentialPlaceholders(newCredentials)
       updatePayload.credentials = newCredentials
     } else if (props.account.type === 'bedrock') {
       const currentCredentials = (props.account.credentials as Record<string, unknown>) || {}
@@ -3506,6 +3530,7 @@ const handleSubmit = async () => {
         return
       }
 
+      removeMaskedCredentialPlaceholders(newCredentials)
       updatePayload.credentials = newCredentials
     } else {
       // For oauth/setup-token types, only update intercept_warmup_requests if changed
@@ -3517,6 +3542,7 @@ const handleSubmit = async () => {
         return
       }
 
+      removeMaskedCredentialPlaceholders(newCredentials)
       updatePayload.credentials = newCredentials
     }
 
@@ -3545,6 +3571,7 @@ const handleSubmit = async () => {
         delete newCredentials.compact_model_mapping
       }
 
+      removeMaskedCredentialPlaceholders(newCredentials)
       updatePayload.credentials = newCredentials
     }
 
@@ -3569,6 +3596,7 @@ const handleSubmit = async () => {
         newCredentials.model_mapping = antigravityModelMapping
       }
 
+      removeMaskedCredentialPlaceholders(newCredentials)
       updatePayload.credentials = newCredentials
     }
 

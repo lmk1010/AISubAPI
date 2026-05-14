@@ -879,6 +879,40 @@ export async function updateRateLimit429CooldownSettings(
   return data;
 }
 
+// ==================== Admin Rate Limit Settings ====================
+
+/**
+ * Admin rate limit settings interface
+ */
+export interface AdminRateLimitSettings {
+  enabled: boolean;
+  max_requests: number;
+  window_seconds: number;
+}
+
+/**
+ * Get admin rate limit settings
+ */
+export async function getAdminRateLimitSettings(): Promise<AdminRateLimitSettings> {
+  const { data } = await apiClient.get<AdminRateLimitSettings>(
+    "/admin/settings/admin-rate-limit",
+  );
+  return data;
+}
+
+/**
+ * Update admin rate limit settings
+ */
+export async function updateAdminRateLimitSettings(
+  settings: AdminRateLimitSettings,
+): Promise<AdminRateLimitSettings> {
+  const { data } = await apiClient.put<AdminRateLimitSettings>(
+    "/admin/settings/admin-rate-limit",
+    settings,
+  );
+  return data;
+}
+
 // ==================== Stream Timeout Settings ====================
 
 /**
@@ -1100,6 +1134,8 @@ export const settingsAPI = {
   updateOverloadCooldownSettings,
   getRateLimit429CooldownSettings,
   updateRateLimit429CooldownSettings,
+  getAdminRateLimitSettings,
+  updateAdminRateLimitSettings,
   getStreamTimeoutSettings,
   updateStreamTimeoutSettings,
   getRectifierSettings,

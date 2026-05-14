@@ -418,9 +418,9 @@ const currentFiles = computed((): FileConfig[] => {
         return generateAnthropicFiles(baseUrl, apiKey)
       }
       if (activeClientTab.value === 'codex-ws') {
-        return generateOpenAIWsFiles(baseUrl, apiKey)
+        return generateOpenAIWsFiles(apiBase, apiKey)
       }
-      return generateOpenAIFiles(baseUrl, apiKey)
+      return generateOpenAIFiles(apiBase, apiKey)
     case 'gemini':
       return [generateGeminiCliContent(baseUrl, apiKey)]
     case 'antigravity':
@@ -525,12 +525,23 @@ ${keyword('$env:')}${variable('GEMINI_MODEL')}${operator('=')}${string(`"${model
   return { path, content, highlighted }
 }
 
+function deriveProviderName(url: string): string {
+  try {
+    const hostname = new URL(url).hostname
+    const parts = hostname.replace(/^(api|www)\./, '').split('.')
+    return parts[0] || 'custom'
+  } catch {
+    return 'custom'
+  }
+}
+
 function generateOpenAIFiles(baseUrl: string, apiKey: string): FileConfig[] {
   const isWindows = activeTab.value === 'windows'
   const configDir = isWindows ? '%userprofile%\\.codex' : '~/.codex'
+  const providerName = deriveProviderName(baseUrl)
 
   // config.toml content
-  const configContent = `model_provider = "OpenAI"
+  const configContent = `model_provider = "${providerName}"
 model = "gpt-5.4"
 review_model = "gpt-5.4"
 model_reasoning_effort = "xhigh"
@@ -540,9 +551,10 @@ windows_wsl_setup_acknowledged = true
 model_context_window = 1000000
 model_auto_compact_token_limit = 900000
 
-[model_providers.OpenAI]
-name = "OpenAI"
+[model_providers.${providerName}]
+name = "${providerName}"
 base_url = "${baseUrl}"
+env_key = "OPENAI_API_KEY"
 wire_api = "responses"
 requires_openai_auth = true`
 
@@ -567,9 +579,10 @@ requires_openai_auth = true`
 function generateOpenAIWsFiles(baseUrl: string, apiKey: string): FileConfig[] {
   const isWindows = activeTab.value === 'windows'
   const configDir = isWindows ? '%userprofile%\\.codex' : '~/.codex'
+  const providerName = deriveProviderName(baseUrl)
 
   // config.toml content with WebSocket v2
-  const configContent = `model_provider = "OpenAI"
+  const configContent = `model_provider = "${providerName}"
 model = "gpt-5.4"
 review_model = "gpt-5.4"
 model_reasoning_effort = "xhigh"
@@ -579,9 +592,10 @@ windows_wsl_setup_acknowledged = true
 model_context_window = 1000000
 model_auto_compact_token_limit = 900000
 
-[model_providers.OpenAI]
-name = "OpenAI"
+[model_providers.${providerName}]
+name = "${providerName}"
 base_url = "${baseUrl}"
+env_key = "OPENAI_API_KEY"
 wire_api = "responses"
 supports_websockets = true
 requires_openai_auth = true

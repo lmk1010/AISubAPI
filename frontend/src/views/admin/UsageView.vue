@@ -139,6 +139,7 @@ import { useAppStore } from '@/stores/app'; import { adminAPI } from '@/api/admi
 import { getPersistedPageSize } from '@/composables/usePersistedPageSize'
 import { formatReasoningEffort } from '@/utils/format'
 import { resolveUsageRequestType, requestTypeToLegacyStream } from '@/utils/usageRequestType'
+import { formatClientName } from '@/utils/clientName'
 import AppLayout from '@/components/layout/AppLayout.vue'; import Pagination from '@/components/common/Pagination.vue'; import Select from '@/components/common/Select.vue'; import DateRangePicker from '@/components/common/DateRangePicker.vue'
 import UsageStatsCards from '@/components/admin/usage/UsageStatsCards.vue'; import UsageFilters from '@/components/admin/usage/UsageFilters.vue'
 import UsageTable from '@/components/admin/usage/UsageTable.vue'; import UsageExportProgress from '@/components/admin/usage/UsageExportProgress.vue'
@@ -460,6 +461,20 @@ const getRequestTypeLabel = (log: AdminUsageLog): string => {
   return t('usage.unknown')
 }
 
+const getUsageCacheTokens = (log: AdminUsageLog): number => {
+  return (log.cache_read_tokens || 0) + (log.cache_creation_tokens || 0)
+}
+
+const getUsageTotalTokens = (log: AdminUsageLog): number => {
+  return (log.input_tokens || 0) + (log.output_tokens || 0) + getUsageCacheTokens(log)
+}
+
+const formatUsageCacheOccupancy = (log: AdminUsageLog): string => {
+  const totalTokens = getUsageTotalTokens(log)
+  if (totalTokens <= 0) return '0.0%'
+  return `${((getUsageCacheTokens(log) / totalTokens) * 100).toFixed(1)}%`
+}
+
 const exportToExcel = async () => {
   if (exporting.value) return; exporting.value = true; exportProgress.show = true
   const c = new AbortController(); exportAbortController = c
@@ -468,11 +483,12 @@ const exportToExcel = async () => {
     const XLSX = await import('xlsx')
     const headers = [
       t('usage.time'), t('admin.usage.user'), t('usage.apiKeyFilter'),
-      t('admin.usage.account'), t('usage.model'), t('usage.upstreamModel'), t('usage.reasoningEffort'), t('admin.usage.group'),
+      t('admin.usage.client'), t('admin.usage.account'), t('usage.model'), t('usage.upstreamModel'), t('usage.reasoningEffort'), t('admin.usage.group'),
       t('usage.inboundEndpoint'), t('usage.upstreamEndpoint'),
       t('usage.type'),
       t('admin.usage.inputTokens'), t('admin.usage.outputTokens'),
       t('admin.usage.cacheReadTokens'), t('admin.usage.cacheCreationTokens'),
+      t('admin.usage.cacheTokens'), t('admin.usage.cacheOccupancy'),
       t('admin.usage.inputCost'), t('admin.usage.outputCost'),
       t('admin.usage.cacheReadCost'), t('admin.usage.cacheCreationCost'),
       t('usage.rate'), t('usage.accountMultiplier'), t('usage.original'), t('usage.userBilled'), t('usage.accountBilled'),
@@ -487,10 +503,11 @@ const exportToExcel = async () => {
       )
       if (c.signal.aborted) break; if (p === 1) { total = res.total; exportProgress.total = total }
       const rows = (res.items || []).map((log: AdminUsageLog) => [
-        log.created_at, log.user?.email || '', log.api_key?.name || '', log.account?.name || '', log.model,
+        log.created_at, log.user?.email || '', log.api_key?.name || '', formatClientName(log.user_agent), log.account?.name || '', log.model,
         log.upstream_model || '', formatReasoningEffort(log.reasoning_effort), log.group?.name || '',
         log.inbound_endpoint || '', log.upstream_endpoint || '', getRequestTypeLabel(log),
         log.input_tokens, log.output_tokens, log.cache_read_tokens, log.cache_creation_tokens,
+        getUsageCacheTokens(log), formatUsageCacheOccupancy(log),
         log.input_cost?.toFixed(6) || '0.000000', log.output_cost?.toFixed(6) || '0.000000',
         log.cache_read_cost?.toFixed(6) || '0.000000', log.cache_creation_cost?.toFixed(6) || '0.000000',
         log.rate_multiplier?.toPrecision(4) || '1.00', (log.account_rate_multiplier ?? 1).toPrecision(4),
@@ -524,6 +541,7 @@ const HIDDEN_COLUMNS_KEY = 'usage-hidden-columns'
 const allColumns = computed(() => [
   { key: 'user', label: t('admin.usage.user'), sortable: false },
   { key: 'api_key', label: t('usage.apiKeyFilter'), sortable: false },
+  { key: 'client', label: t('admin.usage.client'), sortable: false },
   { key: 'account', label: t('admin.usage.account'), sortable: false },
   { key: 'model', label: t('usage.model'), sortable: true },
   { key: 'reasoning_effort', label: t('usage.reasoningEffort'), sortable: false },

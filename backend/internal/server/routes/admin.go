@@ -2,11 +2,22 @@
 package routes
 
 import (
+	"time"
+
 	"github.com/Wei-Shaw/sub2api/internal/handler"
 	"github.com/Wei-Shaw/sub2api/internal/server/middleware"
 
 	"github.com/gin-gonic/gin"
 )
+
+// AdminRateLimiter is a shared rate limiter for all admin endpoints.
+// 60 requests/min per IP is generous for normal admin usage but prevents brute force.
+// Dynamic configuration from DB is loaded via SetConfigProvider after service init.
+var AdminRateLimiter = middleware.NewAdminRateLimiter(middleware.AdminRateLimiterConfig{
+	Enabled:     true,
+	MaxRequests: 60,
+	Window:      time.Minute,
+})
 
 // RegisterAdminRoutes 注册管理员路由
 func RegisterAdminRoutes(
@@ -15,6 +26,7 @@ func RegisterAdminRoutes(
 	adminAuth middleware.AdminAuthMiddleware,
 ) {
 	admin := v1.Group("/admin")
+	admin.Use(AdminRateLimiter.Middleware())
 	admin.Use(gin.HandlerFunc(adminAuth))
 	{
 		// 仪表盘
@@ -432,6 +444,9 @@ func registerSettingsRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		// 429默认回避配置
 		adminSettings.GET("/rate-limit-429-cooldown", h.Admin.Setting.GetRateLimit429CooldownSettings)
 		adminSettings.PUT("/rate-limit-429-cooldown", h.Admin.Setting.UpdateRateLimit429CooldownSettings)
+		// Admin API 速率限制配置
+		adminSettings.GET("/admin-rate-limit", h.Admin.Setting.GetAdminRateLimitSettings)
+		adminSettings.PUT("/admin-rate-limit", h.Admin.Setting.UpdateAdminRateLimitSettings)
 		// 流超时处理配置
 		adminSettings.GET("/stream-timeout", h.Admin.Setting.GetStreamTimeoutSettings)
 		adminSettings.PUT("/stream-timeout", h.Admin.Setting.UpdateStreamTimeoutSettings)
@@ -627,6 +642,7 @@ func registerChannelMonitorRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 func registerUpstreamCostRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 	uc := admin.Group("/upstream-cost")
 	{
+		uc.GET("/local-summary", h.Admin.UpstreamCost.GetLocalSummary)
 		uc.POST("/test-connection", h.Admin.UpstreamCost.TestConnection)
 		uc.POST("/user-info", h.Admin.UpstreamCost.GetUserInfo)
 		uc.POST("/stats", h.Admin.UpstreamCost.GetStats)

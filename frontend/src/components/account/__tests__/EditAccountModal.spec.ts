@@ -190,6 +190,26 @@ describe('EditAccountModal', () => {
     })
   })
 
+  it('does not submit masked API key placeholders as credentials', async () => {
+    const account = buildAccount()
+    account.credentials = {
+      ...account.credentials,
+      api_key: '****c818'
+    }
+    updateAccountMock.mockReset()
+    checkMixedChannelRiskMock.mockReset()
+    checkMixedChannelRiskMock.mockResolvedValue({ has_risk: false })
+    updateAccountMock.mockResolvedValue(account)
+
+    const wrapper = mountModal(account)
+
+    await wrapper.get('form#edit-account-form').trigger('submit.prevent')
+
+    expect(updateAccountMock).toHaveBeenCalledTimes(1)
+    expect(updateAccountMock.mock.calls[0]?.[1]?.credentials).not.toHaveProperty('api_key')
+    expect(updateAccountMock.mock.calls[0]?.[1]?.credentials?.base_url).toBe('https://api.openai.com')
+  })
+
   it('submits OpenAI compact mode and compact-only model mapping', async () => {
     const account = buildAccount()
     account.extra = {

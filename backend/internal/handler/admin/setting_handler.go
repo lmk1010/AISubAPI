@@ -2905,3 +2905,58 @@ func (h *SettingHandler) TestWebSearchEmulation(c *gin.Context) {
 	}
 	response.Success(c, result)
 }
+
+// GetAdminRateLimitSettings 获取 Admin API 速率限制配置
+// GET /api/v1/admin/settings/admin-rate-limit
+func (h *SettingHandler) GetAdminRateLimitSettings(c *gin.Context) {
+	settings, err := h.settingService.GetAdminRateLimitSettings(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, dto.AdminRateLimitSettings{
+		Enabled:       settings.Enabled,
+		MaxRequests:   settings.MaxRequests,
+		WindowSeconds: settings.WindowSeconds,
+	})
+}
+
+// UpdateAdminRateLimitSettingsRequest 更新 Admin API 速率限制配置请求
+type UpdateAdminRateLimitSettingsRequest struct {
+	Enabled       bool `json:"enabled"`
+	MaxRequests   int  `json:"max_requests"`
+	WindowSeconds int  `json:"window_seconds"`
+}
+
+// UpdateAdminRateLimitSettings 更新 Admin API 速率限制配置
+// PUT /api/v1/admin/settings/admin-rate-limit
+func (h *SettingHandler) UpdateAdminRateLimitSettings(c *gin.Context) {
+	var req UpdateAdminRateLimitSettingsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+
+	err := h.settingService.SetAdminRateLimitSettings(c.Request.Context(), &service.AdminRateLimitSettings{
+		Enabled:       req.Enabled,
+		MaxRequests:   req.MaxRequests,
+		WindowSeconds: req.WindowSeconds,
+	})
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	updatedSettings, err := h.settingService.GetAdminRateLimitSettings(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, dto.AdminRateLimitSettings{
+		Enabled:       updatedSettings.Enabled,
+		MaxRequests:   updatedSettings.MaxRequests,
+		WindowSeconds: updatedSettings.WindowSeconds,
+	})
+}

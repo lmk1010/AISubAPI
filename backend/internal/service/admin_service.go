@@ -2459,6 +2459,7 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		return nil, err
 	}
 	wasOveragesEnabled := account.IsOveragesEnabled()
+	originalType := account.Type
 
 	if input.Name != "" {
 		account.Name = input.Name
@@ -2470,7 +2471,8 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		account.Notes = normalizeAccountNotes(input.Notes)
 	}
 	if len(input.Credentials) > 0 {
-		account.Credentials = input.Credentials
+		preserveMissingSensitive := input.Type == "" || input.Type == originalType
+		account.Credentials = mergeCredentialsForAccountUpdate(account.Credentials, input.Credentials, preserveMissingSensitive)
 	}
 	// Extra 使用 map：需要区分“未提供(nil)”与“显式清空({})”。
 	// 关闭配额限制时前端会删除 quota_* 键并提交 extra:{}，此时也必须落库。
@@ -2577,6 +2579,49 @@ func (s *adminServiceImpl) UpdateAccount(ctx context.Context, id int64, input *U
 		return nil, err
 	}
 	return updated, nil
+}
+
+func mergeCredentialsForAccountUpdate(existing, incoming map[string]any, preserveMissingSensitive bool) map[string]any {
+	if incoming == nil {
+		return nil
+	}
+	merged := make(map[string]any, len(incoming))
+	for key, value := range incoming {
+		if isSensitiveCredentialField(key) && isMaskedCredentialPlaceholder(value) {
+			continue
+		}
+		merged[key] = value
+	}
+	for key, existingValue := range existing {
+		if !isSensitiveCredentialField(key) {
+			continue
+		}
+		incomingValue, hasIncoming := merged[key]
+		if (!hasIncoming && preserveMissingSensitive) || isMaskedCredentialPlaceholder(incomingValue) {
+			merged[key] = existingValue
+		}
+	}
+	return merged
+}
+
+func isSensitiveCredentialField(key string) bool {
+	lower := strings.ToLower(key)
+	switch lower {
+	case "access_token", "refresh_token", "api_key", "session_key", "token", "secret", "password", "setup_token":
+		return true
+	}
+	return strings.Contains(lower, "token") ||
+		strings.Contains(lower, "secret") ||
+		strings.Contains(lower, "key") ||
+		strings.Contains(lower, "password")
+}
+
+func isMaskedCredentialPlaceholder(value any) bool {
+	s, ok := value.(string)
+	if !ok {
+		return false
+	}
+	return s == "****" || (len(s) == 8 && strings.HasPrefix(s, "****"))
 }
 
 // BulkUpdateAccounts updates multiple accounts in one request.

@@ -172,6 +172,14 @@ export const adminPaymentAPI = {
   /** Delete a provider instance */
   deleteProvider(id: number) {
     return apiClient.delete(`/admin/payment/providers/${id}`)
+  },
+
+  /** Get subscription revenue grouped by subscription_group_id */
+  getSubscriptionRevenue(params: { group_ids?: number[]; start_date?: string; end_date?: string }) {
+    return apiClient.post<{ group_id: number; pay_amount: number; count: number }[]>(
+      '/admin/payment/subscription-revenue',
+      params
+    )
   }
 }
 

@@ -1085,7 +1085,15 @@ const cols = computed(() =>
   )
 )
 
-const handleEdit = (a: Account) => { edAcc.value = a; showEdit.value = true }
+const handleEdit = async (a: Account) => {
+  try {
+    edAcc.value = await adminAPI.accounts.getById(a.id)
+    showEdit.value = true
+  } catch (error) {
+    console.error('Failed to load account details:', error)
+    appStore.showError('Failed to load account details')
+  }
+}
 const openMenu = (a: Account, e: MouseEvent) => {
   menu.acc = a
 

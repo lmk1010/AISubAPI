@@ -1,5 +1,5 @@
 <template>
-  <div class="grid grid-cols-2 gap-4 lg:grid-cols-4">
+  <div class="grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
     <div class="card p-4 flex items-center gap-3">
       <div class="rounded-lg bg-blue-100 p-2 dark:bg-blue-900/30 text-blue-600">
         <Icon name="document" size="md" />
@@ -18,6 +18,18 @@
         <p class="text-xs text-gray-500">
           {{ t('usage.in') }}: {{ formatTokens(stats?.total_input_tokens || 0) }} /
           {{ t('usage.out') }}: {{ formatTokens(stats?.total_output_tokens || 0) }}
+        </p>
+      </div>
+    </div>
+    <div class="card p-4 flex items-center gap-3">
+      <div class="rounded-lg bg-cyan-100 p-2 text-cyan-600 dark:bg-cyan-900/30">
+        <Icon name="database" size="md" />
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-xs font-medium text-gray-500">{{ t('admin.usage.cacheOccupancy') }}</p>
+        <p class="text-xl font-bold text-cyan-600 dark:text-cyan-400">{{ cacheOccupancy }}</p>
+        <p class="truncate text-xs text-gray-500" :title="cacheTokenDetail">
+          {{ cacheTokenDetail }}
         </p>
       </div>
     </div>
@@ -47,16 +59,30 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { AdminUsageStatsResponse } from '@/api/admin/usage'
 import Icon from '@/components/icons/Icon.vue'
 
-defineProps<{ stats: AdminUsageStatsResponse | null }>()
+const props = defineProps<{ stats: AdminUsageStatsResponse | null }>()
 
 const { t } = useI18n()
 
+const cacheOccupancy = computed(() => formatPercent(props.stats?.total_cache_tokens || 0, props.stats?.total_tokens || 0))
+
+const cacheTokenDetail = computed(() => {
+  const cacheTokens = props.stats?.total_cache_tokens || 0
+  const totalTokens = props.stats?.total_tokens || 0
+  return `${t('admin.usage.cacheTokens')}: ${formatTokens(cacheTokens)} / ${t('usage.totalTokens')}: ${formatTokens(totalTokens)}`
+})
+
 const formatDuration = (ms: number) =>
   ms < 1000 ? `${ms.toFixed(0)}ms` : `${(ms / 1000).toFixed(2)}s`
+
+const formatPercent = (part: number, total: number): string => {
+  if (!Number.isFinite(part) || !Number.isFinite(total) || total <= 0) return '0.0%'
+  return `${((part / total) * 100).toFixed(1)}%`
+}
 
 const formatTokens = (value: number) => {
   if (value >= 1e9) return (value / 1e9).toFixed(2) + 'B'

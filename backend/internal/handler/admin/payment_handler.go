@@ -342,3 +342,23 @@ func (h *PaymentHandler) UpdateConfig(c *gin.Context) {
 	}
 	response.Success(c, gin.H{"message": "updated"})
 }
+
+// GetSubscriptionRevenue returns actual subscription payment revenue grouped by subscription_group_id.
+// POST /api/v1/admin/payment/subscription-revenue
+func (h *PaymentHandler) GetSubscriptionRevenue(c *gin.Context) {
+	var req struct {
+		GroupIDs  []int64 `json:"group_ids"`
+		StartDate string  `json:"start_date"`
+		EndDate   string  `json:"end_date"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	result, err := h.paymentService.GetSubscriptionRevenueByGroups(c.Request.Context(), req.GroupIDs, req.StartDate, req.EndDate)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, result)
+}

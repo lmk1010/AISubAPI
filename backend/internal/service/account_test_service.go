@@ -36,18 +36,25 @@ const (
 	chatgptCodexAPIURL = "https://chatgpt.com/backend-api/codex/responses"
 )
 
+const (
+	accountTestTimingStartedAtKey   = "account_test_timing_started_at"
+	accountTestTimingFirstOutputKey = "account_test_timing_first_output_at"
+)
+
 // TestEvent represents a SSE event for account testing
 type TestEvent struct {
-	Type     string `json:"type"`
-	Text     string `json:"text,omitempty"`
-	Model    string `json:"model,omitempty"`
-	Status   string `json:"status,omitempty"`
-	Code     string `json:"code,omitempty"`
-	ImageURL string `json:"image_url,omitempty"`
-	MimeType string `json:"mime_type,omitempty"`
-	Data     any    `json:"data,omitempty"`
-	Success  bool   `json:"success,omitempty"`
-	Error    string `json:"error,omitempty"`
+	Type       string `json:"type"`
+	Text       string `json:"text,omitempty"`
+	Model      string `json:"model,omitempty"`
+	Status     string `json:"status,omitempty"`
+	Code       string `json:"code,omitempty"`
+	ImageURL   string `json:"image_url,omitempty"`
+	MimeType   string `json:"mime_type,omitempty"`
+	Data       any    `json:"data,omitempty"`
+	TTFTMs     *int64 `json:"ttft_ms,omitempty"`
+	DurationMs *int64 `json:"duration_ms,omitempty"`
+	Success    bool   `json:"success,omitempty"`
+	Error      string `json:"error,omitempty"`
 }
 
 const (
@@ -171,6 +178,7 @@ func createTestPayload(modelID string) (map[string]any, error) {
 // modelID is optional - if empty, defaults to claude.DefaultTestModel
 // mode is optional - "compact" routes OpenAI accounts to the /responses/compact probe path
 func (s *AccountTestService) TestAccountConnection(c *gin.Context, accountID int64, modelID string, prompt string, mode string) error {
+	s.startTestTiming(c)
 	ctx := c.Request.Context()
 
 	// Get account
@@ -1512,12 +1520,66 @@ func (s *AccountTestService) testOpenAIImageOAuth(c *gin.Context, ctx context.Co
 }
 
 func (s *AccountTestService) sendEvent(c *gin.Context, event TestEvent) {
+	s.enrichTestEventTiming(c, &event)
 	eventJSON, _ := json.Marshal(event)
 	if _, err := fmt.Fprintf(c.Writer, "data: %s\n\n", eventJSON); err != nil {
 		log.Printf("failed to write SSE event: %v", err)
 		return
 	}
 	c.Writer.Flush()
+}
+
+func (s *AccountTestService) startTestTiming(c *gin.Context) {
+	if c == nil {
+		return
+	}
+	c.Set(accountTestTimingStartedAtKey, time.Now())
+}
+
+func (s *AccountTestService) enrichTestEventTiming(c *gin.Context, event *TestEvent) {
+	if c == nil || event == nil {
+		return
+	}
+
+	startedAtValue, ok := c.Get(accountTestTimingStartedAtKey)
+	if !ok {
+		return
+	}
+	startedAt, ok := startedAtValue.(time.Time)
+	if !ok || startedAt.IsZero() {
+		return
+	}
+
+	now := time.Now()
+	switch event.Type {
+	case "content", "image":
+		if _, exists := c.Get(accountTestTimingFirstOutputKey); exists {
+			return
+		}
+		c.Set(accountTestTimingFirstOutputKey, now)
+		if event.TTFTMs == nil {
+			event.TTFTMs = durationMillisPtr(now.Sub(startedAt))
+		}
+	case "test_complete", "error":
+		if event.DurationMs == nil {
+			event.DurationMs = durationMillisPtr(now.Sub(startedAt))
+		}
+		if event.TTFTMs == nil {
+			if firstOutputValue, exists := c.Get(accountTestTimingFirstOutputKey); exists {
+				if firstOutputAt, ok := firstOutputValue.(time.Time); ok && !firstOutputAt.IsZero() {
+					event.TTFTMs = durationMillisPtr(firstOutputAt.Sub(startedAt))
+				}
+			}
+		}
+	}
+}
+
+func durationMillisPtr(duration time.Duration) *int64 {
+	ms := duration.Milliseconds()
+	if ms < 0 {
+		ms = 0
+	}
+	return &ms
 }
 
 // sendErrorAndEnd sends an error event and ends the stream

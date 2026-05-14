@@ -425,6 +425,25 @@ func DefaultRateLimit429CooldownSettings() *RateLimit429CooldownSettings {
 	}
 }
 
+// AdminRateLimitSettings Admin API 速率限制配置
+type AdminRateLimitSettings struct {
+	// Enabled 是否启用 Admin API 速率限制
+	Enabled bool `json:"enabled"`
+	// MaxRequests 每个时间窗口内每个 IP 允许的最大请求数
+	MaxRequests int `json:"max_requests"`
+	// WindowSeconds 时间窗口（秒）
+	WindowSeconds int `json:"window_seconds"`
+}
+
+// DefaultAdminRateLimitSettings 返回默认的 Admin 速率限制配置（启用，60次/60秒）
+func DefaultAdminRateLimitSettings() *AdminRateLimitSettings {
+	return &AdminRateLimitSettings{
+		Enabled:       true,
+		MaxRequests:   60,
+		WindowSeconds: 60,
+	}
+}
+
 // DefaultBetaPolicySettings 返回默认的 Beta 策略配置
 func DefaultBetaPolicySettings() *BetaPolicySettings {
 	return &BetaPolicySettings{

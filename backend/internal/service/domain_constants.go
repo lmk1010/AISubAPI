@@ -314,6 +314,9 @@ const (
 	// SettingKeyRateLimit429CooldownSettings stores JSON config for 429 fallback cooldown handling.
 	SettingKeyRateLimit429CooldownSettings = "rate_limit_429_cooldown_settings"
 
+	// SettingKeyAdminRateLimitSettings stores JSON config for admin API rate limiting.
+	SettingKeyAdminRateLimitSettings = "admin_rate_limit_settings"
+
 	// =========================
 	// Stream Timeout Handling
 	// =========================

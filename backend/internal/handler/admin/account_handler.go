@@ -351,8 +351,11 @@ func (h *AccountHandler) List(c *gin.Context) {
 	result := make([]AccountWithConcurrency, len(accounts))
 	for i := range accounts {
 		acc := &accounts[i]
+		accountDTO := dto.AccountFromService(acc)
+		// Mask sensitive credentials in list response (full values available via GetByID)
+		dto.MaskAccountCredentialsInPlace(accountDTO)
 		item := AccountWithConcurrency{
-			Account:            dto.AccountFromService(acc),
+			Account:            accountDTO,
 			CurrentConcurrency: concurrencyCounts[acc.ID],
 		}
 

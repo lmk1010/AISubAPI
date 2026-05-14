@@ -3116,6 +3116,62 @@ func (s *SettingService) SetRateLimit429CooldownSettings(ctx context.Context, se
 	return s.settingRepo.Set(ctx, SettingKeyRateLimit429CooldownSettings, string(data))
 }
 
+// GetAdminRateLimitSettings 获取 Admin API 速率限制配置
+func (s *SettingService) GetAdminRateLimitSettings(ctx context.Context) (*AdminRateLimitSettings, error) {
+	value, err := s.settingRepo.GetValue(ctx, SettingKeyAdminRateLimitSettings)
+	if err != nil {
+		if errors.Is(err, ErrSettingNotFound) {
+			return DefaultAdminRateLimitSettings(), nil
+		}
+		return nil, fmt.Errorf("get admin rate limit settings: %w", err)
+	}
+	if value == "" {
+		return DefaultAdminRateLimitSettings(), nil
+	}
+
+	var settings AdminRateLimitSettings
+	if err := json.Unmarshal([]byte(value), &settings); err != nil {
+		return DefaultAdminRateLimitSettings(), nil
+	}
+
+	// Normalize
+	if settings.MaxRequests < 1 {
+		settings.MaxRequests = 60
+	}
+	if settings.MaxRequests > 10000 {
+		settings.MaxRequests = 10000
+	}
+	if settings.WindowSeconds < 1 {
+		settings.WindowSeconds = 60
+	}
+	if settings.WindowSeconds > 3600 {
+		settings.WindowSeconds = 3600
+	}
+
+	return &settings, nil
+}
+
+// SetAdminRateLimitSettings 设置 Admin API 速率限制配置
+func (s *SettingService) SetAdminRateLimitSettings(ctx context.Context, settings *AdminRateLimitSettings) error {
+	if settings == nil {
+		return fmt.Errorf("settings cannot be nil")
+	}
+
+	if settings.MaxRequests < 1 || settings.MaxRequests > 10000 {
+		return fmt.Errorf("max_requests must be between 1-10000")
+	}
+	if settings.WindowSeconds < 1 || settings.WindowSeconds > 3600 {
+		return fmt.Errorf("window_seconds must be between 1-3600")
+	}
+
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return fmt.Errorf("marshal admin rate limit settings: %w", err)
+	}
+
+	return s.settingRepo.Set(ctx, SettingKeyAdminRateLimitSettings, string(data))
+}
+
 // GetOIDCConnectOAuthConfig 返回用于登录的“最终生效” OIDC 配置。
 //
 // 优先级：

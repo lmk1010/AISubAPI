@@ -148,6 +148,70 @@ func buildTopUsers(orders []*dbent.PaymentOrder) []TopUserStat {
 	return result
 }
 
+// --- Subscription Revenue by Group ---
+
+// GroupRevenue represents the total subscription revenue for a single group.
+type GroupRevenue struct {
+	GroupID    int64   `json:"group_id"`
+	PayAmount float64 `json:"pay_amount"`
+	Count     int     `json:"count"`
+}
+
+// GetSubscriptionRevenueByGroups returns the total pay_amount for completed subscription
+// orders, grouped by subscription_group_id, optionally filtered by date range.
+func (s *PaymentService) GetSubscriptionRevenueByGroups(ctx context.Context, groupIDs []int64, startDate, endDate string) ([]GroupRevenue, error) {
+	paidStatuses := []string{OrderStatusCompleted, OrderStatusPaid, OrderStatusRecharging}
+
+	q := s.entClient.PaymentOrder.Query().
+		Where(
+			paymentorder.OrderTypeEQ("subscription"),
+			paymentorder.StatusIn(paidStatuses...),
+			paymentorder.SubscriptionGroupIDNotNil(),
+		)
+
+	if len(groupIDs) > 0 {
+		q = q.Where(paymentorder.SubscriptionGroupIDIn(groupIDs...))
+	}
+
+	if startDate != "" {
+		if t, err := time.Parse("2006-01-02", startDate); err == nil {
+			q = q.Where(paymentorder.PaidAtGTE(t))
+		}
+	}
+	if endDate != "" {
+		if t, err := time.Parse("2006-01-02", endDate); err == nil {
+			q = q.Where(paymentorder.PaidAtLTE(t.Add(24*time.Hour - time.Second)))
+		}
+	}
+
+	orders, err := q.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	groupMap := make(map[int64]*GroupRevenue)
+	for _, o := range orders {
+		if o.SubscriptionGroupID == nil {
+			continue
+		}
+		gid := *o.SubscriptionGroupID
+		gr, ok := groupMap[gid]
+		if !ok {
+			gr = &GroupRevenue{GroupID: gid}
+			groupMap[gid] = gr
+		}
+		gr.PayAmount += o.PayAmount
+		gr.Count++
+	}
+
+	result := make([]GroupRevenue, 0, len(groupMap))
+	for _, gr := range groupMap {
+		gr.PayAmount = math.Round(gr.PayAmount*100) / 100
+		result = append(result, *gr)
+	}
+	return result, nil
+}
+
 // --- Audit Logs ---
 
 func (s *PaymentService) writeAuditLog(ctx context.Context, oid int64, action, op string, detail map[string]any) {

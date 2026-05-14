@@ -29,6 +29,17 @@
           <span class="text-sm text-gray-900 dark:text-white">{{ row.api_key?.name || '-' }}</span>
         </template>
 
+        <template #cell-client="{ row }">
+          <span
+            v-if="row.user_agent"
+            class="block max-w-[180px] truncate text-sm font-medium text-gray-800 dark:text-gray-200"
+            :title="row.user_agent"
+          >
+            {{ formatClientName(row.user_agent) }}
+          </span>
+          <span v-else class="text-sm text-gray-400 dark:text-gray-500">-</span>
+        </template>
+
         <template #cell-account="{ row }">
           <span class="text-sm text-gray-900 dark:text-white">{{ row.account?.name || '-' }}</span>
         </template>
@@ -125,10 +136,16 @@
                   <span v-if="row.cache_ttl_overridden" :title="t('usage.cacheTtlOverriddenHint')" class="inline-flex items-center rounded px-1 py-px text-[10px] font-medium leading-tight bg-rose-100 text-rose-600 ring-1 ring-inset ring-rose-200 dark:bg-rose-500/20 dark:text-rose-400 dark:ring-rose-500/30 cursor-help">R</span>
                 </div>
               </div>
+              <div class="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+                <Icon name="database" size="xs" class="h-3 w-3 text-cyan-500" />
+                <span>{{ t('admin.usage.cacheOccupancy') }}</span>
+                <span class="font-semibold text-cyan-600 dark:text-cyan-400">{{ formatCacheOccupancy(row) }}</span>
+              </div>
             </div>
             <!-- Token Detail Tooltip -->
             <div
               class="group relative"
+              data-test="token-tooltip-trigger"
               @mouseenter="showTokenTooltip($event, row)"
               @mouseleave="hideTokenTooltip"
             >
@@ -146,6 +163,7 @@
               <!-- Cost Detail Tooltip -->
               <div
                 class="group relative"
+                data-test="cost-tooltip-trigger"
                 @mouseenter="showTooltip($event, row)"
                 @mouseleave="hideTooltip"
               >
@@ -246,9 +264,17 @@
               <span class="font-medium text-white">{{ tokenTooltipData.cache_read_tokens.toLocaleString() }}</span>
             </div>
           </div>
+          <div v-if="tokenTooltipData" class="flex items-center justify-between gap-6 border-t border-gray-700 pt-1.5">
+            <span class="text-gray-400">{{ t('admin.usage.cacheTokens') }}</span>
+            <span class="font-medium text-white">{{ getCacheTokens(tokenTooltipData).toLocaleString() }}</span>
+          </div>
+          <div v-if="tokenTooltipData" class="flex items-center justify-between gap-6">
+            <span class="text-gray-400">{{ t('admin.usage.cacheOccupancy') }}</span>
+            <span class="font-semibold text-cyan-300">{{ formatCacheOccupancy(tokenTooltipData) }}</span>
+          </div>
           <div class="flex items-center justify-between gap-6 border-t border-gray-700 pt-1.5">
             <span class="text-gray-400">{{ t('usage.totalTokens') }}</span>
-            <span class="font-semibold text-blue-400">{{ ((tokenTooltipData?.input_tokens || 0) + (tokenTooltipData?.output_tokens || 0) + (tokenTooltipData?.cache_creation_tokens || 0) + (tokenTooltipData?.cache_read_tokens || 0)).toLocaleString() }}</span>
+            <span class="font-semibold text-blue-400">{{ getTotalTokens(tokenTooltipData).toLocaleString() }}</span>
           </div>
         </div>
         <div class="absolute right-full top-1/2 h-0 w-0 -translate-y-1/2 border-b-[6px] border-r-[6px] border-t-[6px] border-b-transparent border-r-gray-900 border-t-transparent dark:border-r-gray-800"></div>
@@ -365,6 +391,7 @@ import { formatCacheTokens, formatMultiplier } from '@/utils/formatters'
 import { formatTokenPricePerMillion } from '@/utils/usagePricing'
 import { getUsageServiceTierLabel } from '@/utils/usageServiceTier'
 import { resolveUsageRequestType } from '@/utils/usageRequestType'
+import { formatClientName } from '@/utils/clientName'
 import { getBillingModeLabel, getBillingModeBadgeClass, BILLING_MODE_TOKEN, BILLING_MODE_IMAGE } from '@/utils/billingMode'
 
 /** Compute the account-billed cost for display: (account_stats_cost ?? total_cost) * rate_multiplier */
@@ -434,7 +461,25 @@ const getRequestTypeBadgeClass = (row: AdminUsageLog): string => {
   return 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'
 }
 
+const getSafeTokenCount = (value: number | null | undefined): number => {
+  return Number.isFinite(value) ? Number(value) : 0
+}
 
+const getCacheTokens = (row: AdminUsageLog | null): number => {
+  if (!row) return 0
+  return getSafeTokenCount(row.cache_creation_tokens) + getSafeTokenCount(row.cache_read_tokens)
+}
+
+const getTotalTokens = (row: AdminUsageLog | null): number => {
+  if (!row) return 0
+  return getSafeTokenCount(row.input_tokens) + getSafeTokenCount(row.output_tokens) + getCacheTokens(row)
+}
+
+const formatCacheOccupancy = (row: AdminUsageLog | null): string => {
+  const totalTokens = getTotalTokens(row)
+  if (totalTokens <= 0) return '0.0%'
+  return `${((getCacheTokens(row) / totalTokens) * 100).toFixed(1)}%`
+}
 
 const formatUserAgent = (ua: string): string => {
   return ua

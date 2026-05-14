@@ -33,6 +33,9 @@ vi.mock('vue-i18n', async () => {
         if (key === 'admin.accounts.imageReceived' && params?.count) {
           return `received-${params.count}`
         }
+        if (params?.time) {
+          return `${key}-${params.time}`
+        }
         return messages[key] || key
       }
     })
@@ -106,8 +109,8 @@ describe('AccountTestModal', () => {
     global.fetch = vi.fn().mockResolvedValue(
       createStreamResponse([
         'data: {"type":"test_start","model":"gemini-2.5-flash-image"}\n',
-        'data: {"type":"image","image_url":"data:image/png;base64,QUJD","mime_type":"image/png"}\n',
-        'data: {"type":"test_complete","success":true}\n'
+        'data: {"type":"image","image_url":"data:image/png;base64,QUJD","mime_type":"image/png","ttft_ms":123}\n',
+        'data: {"type":"test_complete","success":true,"duration_ms":456,"ttft_ms":123}\n'
       ])
     ) as any
   })
@@ -143,5 +146,7 @@ describe('AccountTestModal', () => {
     const preview = wrapper.find('img[alt="test-image-1"]')
     expect(preview.exists()).toBe(true)
     expect(preview.attributes('src')).toBe('data:image/png;base64,QUJD')
+    expect(wrapper.text()).toContain('admin.accounts.firstResponseLatency-123 ms')
+    expect(wrapper.text()).toContain('admin.accounts.totalDuration-456 ms')
   })
 })

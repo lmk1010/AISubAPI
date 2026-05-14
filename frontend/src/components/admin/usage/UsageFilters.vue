@@ -1,5 +1,5 @@
 <template>
-  <div class="card p-6">
+  <div class="card relative z-[300] p-6">
     <!-- Toolbar: left filters (multi-line) + right actions -->
     <div class="flex flex-wrap items-end justify-between gap-4">
       <!-- Left: filters (allowed to wrap to multiple rows) -->

@@ -287,7 +287,7 @@ onMounted(() => {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: #f1f3fb url('/light-bg.png') no-repeat center center / cover;
+  background: #f1f3fb url('/home-bg-light.png') no-repeat center center / cover;
   color: #0f172a;
 }
 
@@ -743,7 +743,7 @@ onMounted(() => {
 -->
 <style>
 html.dark .home-shell {
-  background: #0a0f1a url('/dark-dashboard-bg.png') no-repeat center center / cover;
+  background: #0a0f1a url('/home-bg-dark.png') no-repeat center center / cover;
   color: #e2e8f0;
 }
 

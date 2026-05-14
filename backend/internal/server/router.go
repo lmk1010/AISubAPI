@@ -114,4 +114,19 @@ func registerRoutes(
 	routes.RegisterPaymentRoutes(v1, h.Payment, h.PaymentWebhook, h.Admin.Payment, jwtAuth, adminAuth, settingService)
 
 	handler.RegisterPageRoutes(v1, cfg.Pricing.DataDir, gin.HandlerFunc(jwtAuth), gin.HandlerFunc(adminAuth), settingService)
+
+	// Wire admin rate limiter dynamic config from DB settings
+	routes.AdminRateLimiter.SetConfigProvider(func() *middleware2.AdminRateLimiterConfig {
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+		settings, err := settingService.GetAdminRateLimitSettings(ctx)
+		if err != nil || settings == nil {
+			return nil // fall back to static config
+		}
+		return &middleware2.AdminRateLimiterConfig{
+			Enabled:     settings.Enabled,
+			MaxRequests: settings.MaxRequests,
+			Window:      time.Duration(settings.WindowSeconds) * time.Second,
+		}
+	})
 }

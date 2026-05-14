@@ -103,5 +103,8 @@ func RegisterPaymentRoutes(
 			providers.PUT("/:id", adminPaymentHandler.UpdateProvider)
 			providers.DELETE("/:id", adminPaymentHandler.DeleteProvider)
 		}
+
+		// Subscription Revenue Analytics
+		adminGroup.POST("/subscription-revenue", adminPaymentHandler.GetSubscriptionRevenue)
 	}
 }
