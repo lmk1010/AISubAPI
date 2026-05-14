@@ -123,6 +123,13 @@
                 <span class="text-gray-400">下游实扣</span>
                 <span class="ml-1 font-semibold text-blue-600 dark:text-blue-400">{{ rate(row.downstreamEffectiveRate) }}</span>
               </div>
+              <div
+                v-if="hasGroupRateMismatch(row)"
+                class="inline-flex rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700 dark:bg-amber-900/30 dark:text-amber-300"
+                :title="groupRateMismatchTitle(row.currentGroupRate, row.downstreamEffectiveRate)"
+              >
+                含用户/历史倍率
+              </div>
             </div>
           </template>
 
@@ -170,7 +177,7 @@
           </template>
 
           <template #empty>
-            <EmptyState title="还没有配置上游成本账号" />
+            <EmptyState :title="emptyStateTitle" :description="emptyStateDescription" />
           </template>
         </DataTable>
       </template>
@@ -280,7 +287,16 @@
                   <div class="text-[10px] text-gray-400">{{ group.requests.toLocaleString() }} req / {{ group.total_tokens.toLocaleString() }} tokens</div>
                 </td>
                 <td class="px-3 py-2">{{ rate(group.current_group_rate) }}</td>
-                <td class="px-3 py-2 text-blue-600 dark:text-blue-400">{{ rate(group.downstream_effective_rate) }}</td>
+                <td class="px-3 py-2 text-blue-600 dark:text-blue-400">
+                  {{ rate(group.downstream_effective_rate) }}
+                  <div
+                    v-if="hasGroupRateMismatchValues(group.current_group_rate, group.downstream_effective_rate)"
+                    class="mt-0.5 text-[10px] text-amber-600 dark:text-amber-300"
+                    :title="groupRateMismatchTitle(group.current_group_rate, group.downstream_effective_rate)"
+                  >
+                    含用户/历史倍率
+                  </div>
+                </td>
                 <td class="px-3 py-2 text-red-600 dark:text-red-400">{{ money(group.allocated_upstream_used_rmb, 4) }}</td>
                 <td class="px-3 py-2 text-blue-600 dark:text-blue-400">
                   {{ money(group.downstream_revenue_rmb, 4) }}
@@ -347,8 +363,17 @@ const accounts = ref<Account[]>([])
 const realSummary = ref<UpstreamRealSummary | null>(null)
 const loadingAccounts = ref(false)
 const batchFetching = ref(false)
+const remoteSummaryCacheEmpty = ref(false)
 
 const loading = computed(() => loadingAccounts.value || batchFetching.value)
+const emptyStateTitle = computed(() => {
+  if (remoteSummaryCacheEmpty.value) return '上游成本缓存为空'
+  return '还没有配置上游成本账号'
+})
+const emptyStateDescription = computed(() => {
+  if (remoteSummaryCacheEmpty.value) return '服务重启或缓存过期后会出现，页面会自动刷新真实上游。'
+  return ''
+})
 
 async function loadAccounts() {
   loadingAccounts.value = true
@@ -367,16 +392,22 @@ function loadCachedRealSummary() {
     const raw = window.localStorage.getItem(realSummaryCacheKey)
     if (!raw) return
     const cached = JSON.parse(raw) as UpstreamRealSummary
-    if (cached && Array.isArray(cached.pools)) {
+    if (cached && !isRemoteSummaryCacheEmpty(cached) && Array.isArray(cached.pools)) {
       realSummary.value = cached
+    } else {
+      window.localStorage.removeItem(realSummaryCacheKey)
     }
   } catch {
     window.localStorage.removeItem(realSummaryCacheKey)
   }
 }
 
+function isRemoteSummaryCacheEmpty(summary: UpstreamRealSummary | null): boolean {
+  return summary?.scope === 'remote_upstream_cache_empty'
+}
+
 function saveCachedRealSummary(summary: UpstreamRealSummary) {
-  if (summary.scope === 'remote_upstream_cache_empty') return
+  if (isRemoteSummaryCacheEmpty(summary)) return
   try {
     window.localStorage.setItem(realSummaryCacheKey, JSON.stringify(summary))
   } catch {
@@ -391,7 +422,15 @@ async function fetchAllChannelCosts(refresh = false) {
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       refresh,
     })
-    if (summary.scope === 'remote_upstream_cache_empty' && realSummary.value) return
+    if (isRemoteSummaryCacheEmpty(summary)) {
+      remoteSummaryCacheEmpty.value = true
+      if (realSummary.value) return
+      if (!refresh) {
+        await fetchAllChannelCosts(true)
+      }
+      return
+    }
+    remoteSummaryCacheEmpty.value = false
     realSummary.value = summary
     saveCachedRealSummary(summary)
   } catch (err: any) {
@@ -678,6 +717,20 @@ function signedMoney(value: number, digits = 2): string {
 function rate(value: number): string {
   const n = Number(value || 0)
   return `${n.toFixed(3)}x`
+}
+
+function hasGroupRateMismatchValues(currentRate: number, effectiveRate: number): boolean {
+  const current = Number(currentRate || 0)
+  const effective = Number(effectiveRate || 0)
+  return current > 0 && effective > 0 && Math.abs(current - effective) > 0.0005
+}
+
+function hasGroupRateMismatch(row: TableRow): boolean {
+  return row.rowType === 'group' && hasGroupRateMismatchValues(row.currentGroupRate, row.downstreamEffectiveRate)
+}
+
+function groupRateMismatchTitle(currentRate: number, effectiveRate: number): string {
+  return `当前分组 ${rate(currentRate)}，历史实扣 ${rate(effectiveRate)}。通常是用户专属倍率、历史倍率调整或套餐折算造成。`
 }
 
 function providerLabel(provider: string): string {
