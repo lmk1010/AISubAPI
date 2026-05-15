@@ -321,13 +321,16 @@ func (s upstreamRemoteAccountSnapshot) effectiveUsedQuota() int64 {
 }
 
 type newAPITokenUsageData struct {
-	Object       string `json:"object"`
-	Name         string `json:"name"`
-	TotalGranted int64  `json:"total_granted"`
-	TotalUsed    int64  `json:"total_used"`
-	Available    int64  `json:"available"`
-	Unlimited    bool   `json:"unlimited"`
-	ExpiredTime  int64  `json:"expired_time"`
+	Object         string `json:"object"`
+	Name           string `json:"name"`
+	TotalGranted   int64  `json:"total_granted"`
+	TotalUsed      int64  `json:"total_used"`
+	Available      int64  `json:"available"`
+	TotalAvailable int64  `json:"total_available"`
+	Unlimited      bool   `json:"unlimited"`
+	UnlimitedQuota bool   `json:"unlimited_quota"`
+	ExpiredTime    int64  `json:"expired_time"`
+	ExpiresAt      int64  `json:"expires_at"`
 }
 
 type newAPITopupListData struct {
@@ -629,7 +632,7 @@ func (h *UpstreamCostHandler) buildRealAccountCostSummary(
 			}
 			child.UpstreamUsedRMB = quotaToMoney(tokenUsage.TotalUsed)
 			child.UpstreamUsedUSD = child.UpstreamUsedRMB
-			if !tokenUsage.Unlimited && tokenUsage.Available >= 0 {
+			if snapshot.Error != "" && !tokenUsage.Unlimited && tokenUsage.Available >= 0 {
 				child.UpstreamRemainingRMB = quotaToMoney(tokenUsage.Available)
 			}
 		}
@@ -798,7 +801,20 @@ func (h *UpstreamCostHandler) fetchNewAPITokenUsage(ctx context.Context, baseURL
 	if err := parseNewAPIData(body, &tokenUsage); err != nil {
 		return newAPITokenUsageData{}, fmt.Errorf("parse token usage: %w", err)
 	}
+	tokenUsage.normalize()
 	return tokenUsage, nil
+}
+
+func (d *newAPITokenUsageData) normalize() {
+	if d.Available == 0 && d.TotalAvailable != 0 {
+		d.Available = d.TotalAvailable
+	}
+	if d.UnlimitedQuota {
+		d.Unlimited = true
+	}
+	if d.ExpiredTime == 0 && d.ExpiresAt != 0 {
+		d.ExpiredTime = d.ExpiresAt
+	}
 }
 
 func (h *UpstreamCostHandler) fetchNewAPITopupRMB(ctx context.Context, cfg service.UpstreamCostProviderConfig, headers map[string]string) (float64, bool) {

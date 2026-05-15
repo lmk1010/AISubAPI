@@ -68,6 +68,28 @@ func TestParseNewAPIDataUnwrapsEnvelope(t *testing.T) {
 	}
 }
 
+func TestNewAPITokenUsageDataNormalizeSupportsNewAPIAliases(t *testing.T) {
+	var out newAPITokenUsageData
+	err := parseNewAPIData([]byte(`{"code":true,"message":"ok","data":{"name":"cc1","total_used":8549138,"total_available":-8548725,"unlimited_quota":true,"expires_at":123}}`), &out)
+	if err != nil {
+		t.Fatalf("parseNewAPIData returned error: %v", err)
+	}
+	out.normalize()
+
+	if out.Name != "cc1" || out.TotalUsed != 8549138 {
+		t.Fatalf("unexpected parsed token usage: %+v", out)
+	}
+	if out.Available != -8548725 {
+		t.Fatalf("available = %d, want %d", out.Available, int64(-8548725))
+	}
+	if !out.Unlimited {
+		t.Fatal("expected unlimited_quota alias to set Unlimited")
+	}
+	if out.ExpiredTime != 123 {
+		t.Fatalf("expired time = %d, want 123", out.ExpiredTime)
+	}
+}
+
 func TestBuildRealGroupCostSummariesAllocatesByStandardCost(t *testing.T) {
 	groups := []service.UpstreamCostGroupBreakdown{
 		{GroupID: 1, GroupName: "default", CurrentGroupRate: 1, Requests: 2, TotalTokens: 200, StandardCost: 80, UserCost: 80, DownstreamRevenueRMB: 80},

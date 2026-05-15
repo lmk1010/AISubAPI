@@ -82,7 +82,11 @@
 
           <template #cell-upstream_used_rmb="{ row }">
             <span class="font-semibold text-red-600 dark:text-red-400">{{ money(row.upstreamUsedRMB) }}</span>
-            <span v-if="row.rowType === 'pool' && row.unallocatedUpstreamUsedRMB > 0.000001" class="ml-1 text-[10px] text-amber-600 dark:text-amber-300">
+            <span
+              v-if="row.rowType === 'pool' && row.unallocatedUpstreamUsedRMB > 0.000001"
+              class="ml-1 text-[10px] text-amber-600 dark:text-amber-300"
+              :title="unallocatedTitle(row)"
+            >
               未分摊 {{ money(row.unallocatedUpstreamUsedRMB) }}
             </span>
           </template>
@@ -107,6 +111,13 @@
             <span class="font-semibold" :class="row.profitRMB >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
               {{ signedMoney(row.profitRMB) }}
             </span>
+            <div
+              v-if="row.rowType === 'pool' && row.unallocatedUpstreamUsedRMB > 0.000001"
+              class="mt-0.5 text-[10px] text-emerald-600 dark:text-emerald-300"
+              :title="allocatedProfitTitle(row)"
+            >
+              本系统 {{ signedMoney(allocatedProfit(row)) }}
+            </div>
           </template>
 
           <template #cell-rates="{ row }">
@@ -521,6 +532,7 @@ interface TableRow {
   requests: number
   totalTokens: number
   upstreamUsedRMB: number
+  allocatedUpstreamUsedRMB: number
   upstreamRemainingRMB: number
   upstreamUsedUSD: number
   downstreamRevenueRMB: number
@@ -565,6 +577,7 @@ const tableData = computed<TableRow[]>(() => {
       requests: pool.requests,
       totalTokens: pool.total_tokens,
       upstreamUsedRMB: pool.upstream_used_rmb,
+      allocatedUpstreamUsedRMB: pool.allocated_upstream_used_rmb,
       upstreamRemainingRMB: pool.upstream_remaining_rmb,
       upstreamUsedUSD: pool.upstream_used_usd,
       downstreamRevenueRMB: pool.downstream_revenue_rmb,
@@ -600,6 +613,7 @@ const tableData = computed<TableRow[]>(() => {
         requests: child.requests,
         totalTokens: child.total_tokens,
         upstreamUsedRMB: child.upstream_used_rmb,
+        allocatedUpstreamUsedRMB: child.upstream_used_rmb,
         upstreamRemainingRMB: child.upstream_remaining_rmb,
         upstreamUsedUSD: child.upstream_used_usd,
         downstreamRevenueRMB: child.downstream_revenue_rmb,
@@ -635,6 +649,7 @@ const tableData = computed<TableRow[]>(() => {
           requests: group.requests,
           totalTokens: group.total_tokens,
           upstreamUsedRMB: group.allocated_upstream_used_rmb,
+          allocatedUpstreamUsedRMB: group.allocated_upstream_used_rmb,
           upstreamRemainingRMB: 0,
           upstreamUsedUSD: group.allocated_upstream_used_rmb,
           downstreamRevenueRMB: group.downstream_revenue_rmb,
@@ -731,6 +746,18 @@ function hasGroupRateMismatch(row: TableRow): boolean {
 
 function groupRateMismatchTitle(currentRate: number, effectiveRate: number): string {
   return `当前分组 ${rate(currentRate)}，历史实扣 ${rate(effectiveRate)}。通常是用户专属倍率、历史倍率调整或套餐折算造成。`
+}
+
+function allocatedProfit(row: TableRow): number {
+  return Number(row.downstreamRevenueRMB || 0) - Number(row.allocatedUpstreamUsedRMB || 0)
+}
+
+function allocatedProfitTitle(row: TableRow): string {
+  return `本系统盈亏不含未分摊上游消耗：${money(row.downstreamRevenueRMB)} - ${money(row.allocatedUpstreamUsedRMB)} = ${signedMoney(allocatedProfit(row))}`
+}
+
+function unallocatedTitle(row: TableRow): string {
+  return `上游账号总消耗中有 ${money(row.unallocatedUpstreamUsedRMB)} 暂时无法归因到本系统账号/分组，常见原因是同一个上游账号下还有其他 token 在使用。`
 }
 
 function providerLabel(provider: string): string {
