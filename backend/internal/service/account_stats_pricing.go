@@ -189,11 +189,13 @@ func calculateTokenStatsCost(pricing *ChannelModelPricing, tokens UsageTokens) *
 		totalTokens := tokens.InputTokens + tokens.OutputTokens + tokens.CacheCreationTokens + tokens.CacheReadTokens
 		if iv := FindMatchingInterval(pricing.Intervals, totalTokens); iv != nil {
 			p = &ChannelModelPricing{
-				InputPrice:      iv.InputPrice,
-				OutputPrice:     iv.OutputPrice,
-				CacheWritePrice: iv.CacheWritePrice,
-				CacheReadPrice:  iv.CacheReadPrice,
-				PerRequestPrice: iv.PerRequestPrice,
+				InputPrice:        iv.InputPrice,
+				OutputPrice:       iv.OutputPrice,
+				CacheWritePrice:   iv.CacheWritePrice,
+				CacheWrite5mPrice: iv.CacheWrite5mPrice,
+				CacheWrite1hPrice: iv.CacheWrite1hPrice,
+				CacheReadPrice:    iv.CacheReadPrice,
+				PerRequestPrice:   iv.PerRequestPrice,
 			}
 		}
 	}
@@ -203,15 +205,48 @@ func calculateTokenStatsCost(pricing *ChannelModelPricing, tokens UsageTokens) *
 		}
 		return *ptr
 	}
+	cacheCreationCost := computeAccountStatsCacheCreationCost(p, tokens)
 	cost := float64(tokens.InputTokens)*deref(p.InputPrice) +
 		float64(tokens.OutputTokens)*deref(p.OutputPrice) +
-		float64(tokens.CacheCreationTokens)*deref(p.CacheWritePrice) +
+		cacheCreationCost +
 		float64(tokens.CacheReadTokens)*deref(p.CacheReadPrice) +
 		float64(tokens.ImageOutputTokens)*deref(p.ImageOutputPrice)
 	if cost <= 0 {
 		return nil
 	}
 	return &cost
+}
+
+func computeAccountStatsCacheCreationCost(pricing *ChannelModelPricing, tokens UsageTokens) float64 {
+	if pricing == nil {
+		return 0
+	}
+	generic := 0.0
+	if pricing.CacheWritePrice != nil {
+		generic = *pricing.CacheWritePrice
+	}
+	price5m := generic
+	if pricing.CacheWrite5mPrice != nil {
+		price5m = *pricing.CacheWrite5mPrice
+	}
+	price1h := generic
+	if pricing.CacheWrite1hPrice != nil {
+		price1h = *pricing.CacheWrite1hPrice
+	}
+	if pricing.CacheWrite5mPrice != nil || pricing.CacheWrite1hPrice != nil {
+		if price5m == 0 && price1h > 0 {
+			price5m = price1h
+		}
+		if price1h == 0 {
+			price1h = price5m
+		}
+		if tokens.CacheCreation5mTokens == 0 && tokens.CacheCreation1hTokens == 0 && tokens.CacheCreationTokens > 0 {
+			return float64(tokens.CacheCreationTokens) * price5m
+		}
+		return float64(tokens.CacheCreation5mTokens)*price5m +
+			float64(tokens.CacheCreation1hTokens)*price1h
+	}
+	return float64(tokens.CacheCreationTokens) * generic
 }
 
 // applyAccountStatsCost resolves the account stats cost for a usage log entry.

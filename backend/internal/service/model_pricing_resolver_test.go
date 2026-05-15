@@ -630,6 +630,20 @@ func TestFilterValidIntervals(t *testing.T) {
 			wantLen: 1,
 		},
 		{
+			name: "interval with only CacheWrite5mPrice kept",
+			intervals: []PricingInterval{
+				{MinTokens: 0, CacheWrite5mPrice: testPtrFloat64(6.25e-6)},
+			},
+			wantLen: 1,
+		},
+		{
+			name: "interval with only CacheWrite1hPrice kept",
+			intervals: []PricingInterval{
+				{MinTokens: 0, CacheWrite1hPrice: testPtrFloat64(12.5e-6)},
+			},
+			wantLen: 1,
+		},
+		{
 			name: "interval with only CacheReadPrice kept",
 			intervals: []PricingInterval{
 				{MinTokens: 0, CacheReadPrice: testPtrFloat64(0.5e-6)},
@@ -660,4 +674,31 @@ func TestFilterValidIntervals(t *testing.T) {
 			require.Len(t, result, tt.wantLen)
 		})
 	}
+}
+
+func TestGetIntervalPricing_CacheTTLOverrides(t *testing.T) {
+	bs := newTestBillingServiceForResolver()
+	r := NewModelPricingResolver(&ChannelService{}, bs)
+
+	resolved := &ResolvedPricing{
+		Mode:                   BillingModeToken,
+		BasePricing:            &ModelPricing{CacheCreationPricePerToken: 3.75e-6},
+		SupportsCacheBreakdown: true,
+		Intervals: []PricingInterval{
+			{
+				MinTokens:         0,
+				MaxTokens:         testPtrInt(128000),
+				CacheWritePrice:   testPtrFloat64(3.75e-6),
+				CacheWrite5mPrice: testPtrFloat64(6.25e-6),
+				CacheWrite1hPrice: testPtrFloat64(12.5e-6),
+			},
+		},
+	}
+
+	result := r.GetIntervalPricing(resolved, 50000)
+	require.NotNil(t, result)
+	require.True(t, result.SupportsCacheBreakdown)
+	require.InDelta(t, 3.75e-6, result.CacheCreationPricePerToken, 1e-12)
+	require.InDelta(t, 6.25e-6, result.CacheCreation5mPrice, 1e-12)
+	require.InDelta(t, 12.5e-6, result.CacheCreation1hPrice, 1e-12)
 }

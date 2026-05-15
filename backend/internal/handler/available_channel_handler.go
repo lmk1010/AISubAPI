@@ -63,26 +63,30 @@ type userAvailableGroup struct {
 
 // userSupportedModelPricing 用户可见的定价字段白名单。
 type userSupportedModelPricing struct {
-	BillingMode      string                   `json:"billing_mode"`
-	InputPrice       *float64                 `json:"input_price"`
-	OutputPrice      *float64                 `json:"output_price"`
-	CacheWritePrice  *float64                 `json:"cache_write_price"`
-	CacheReadPrice   *float64                 `json:"cache_read_price"`
-	ImageOutputPrice *float64                 `json:"image_output_price"`
-	PerRequestPrice  *float64                 `json:"per_request_price"`
-	Intervals        []userPricingIntervalDTO `json:"intervals"`
+	BillingMode       string                   `json:"billing_mode"`
+	InputPrice        *float64                 `json:"input_price"`
+	OutputPrice       *float64                 `json:"output_price"`
+	CacheWritePrice   *float64                 `json:"cache_write_price"`
+	CacheWrite5mPrice *float64                 `json:"cache_write_5m_price"`
+	CacheWrite1hPrice *float64                 `json:"cache_write_1h_price"`
+	CacheReadPrice    *float64                 `json:"cache_read_price"`
+	ImageOutputPrice  *float64                 `json:"image_output_price"`
+	PerRequestPrice   *float64                 `json:"per_request_price"`
+	Intervals         []userPricingIntervalDTO `json:"intervals"`
 }
 
 // userPricingIntervalDTO 定价区间白名单（去掉内部 ID、SortOrder 等前端不渲染的字段）。
 type userPricingIntervalDTO struct {
-	MinTokens       int      `json:"min_tokens"`
-	MaxTokens       *int     `json:"max_tokens"`
-	TierLabel       string   `json:"tier_label,omitempty"`
-	InputPrice      *float64 `json:"input_price"`
-	OutputPrice     *float64 `json:"output_price"`
-	CacheWritePrice *float64 `json:"cache_write_price"`
-	CacheReadPrice  *float64 `json:"cache_read_price"`
-	PerRequestPrice *float64 `json:"per_request_price"`
+	MinTokens         int      `json:"min_tokens"`
+	MaxTokens         *int     `json:"max_tokens"`
+	TierLabel         string   `json:"tier_label,omitempty"`
+	InputPrice        *float64 `json:"input_price"`
+	OutputPrice       *float64 `json:"output_price"`
+	CacheWritePrice   *float64 `json:"cache_write_price"`
+	CacheWrite5mPrice *float64 `json:"cache_write_5m_price"`
+	CacheWrite1hPrice *float64 `json:"cache_write_1h_price"`
+	CacheReadPrice    *float64 `json:"cache_read_price"`
+	PerRequestPrice   *float64 `json:"per_request_price"`
 }
 
 // userSupportedModel 用户可见的支持模型条目。
@@ -171,6 +175,7 @@ func (h *AvailableChannelHandler) List(c *gin.Context) {
 //   - 仅返回 Active 渠道；
 //   - 渠道分组只保留 IsExclusive=false 的公开分组；
 //   - 模型按平台过滤，与 List 同口径，避免跨平台模型泄漏。
+//
 // GET /api/v1/channels/public
 func (h *AvailableChannelHandler) PublicList(c *gin.Context) {
 	if !h.featureEnabled(c) {
@@ -316,14 +321,16 @@ func toUserPricing(p *service.ChannelModelPricing) *userSupportedModelPricing {
 	intervals := make([]userPricingIntervalDTO, 0, len(p.Intervals))
 	for _, iv := range p.Intervals {
 		intervals = append(intervals, userPricingIntervalDTO{
-			MinTokens:       iv.MinTokens,
-			MaxTokens:       iv.MaxTokens,
-			TierLabel:       iv.TierLabel,
-			InputPrice:      iv.InputPrice,
-			OutputPrice:     iv.OutputPrice,
-			CacheWritePrice: iv.CacheWritePrice,
-			CacheReadPrice:  iv.CacheReadPrice,
-			PerRequestPrice: iv.PerRequestPrice,
+			MinTokens:         iv.MinTokens,
+			MaxTokens:         iv.MaxTokens,
+			TierLabel:         iv.TierLabel,
+			InputPrice:        iv.InputPrice,
+			OutputPrice:       iv.OutputPrice,
+			CacheWritePrice:   iv.CacheWritePrice,
+			CacheWrite5mPrice: iv.CacheWrite5mPrice,
+			CacheWrite1hPrice: iv.CacheWrite1hPrice,
+			CacheReadPrice:    iv.CacheReadPrice,
+			PerRequestPrice:   iv.PerRequestPrice,
 		})
 	}
 	billingMode := string(p.BillingMode)
@@ -331,13 +338,15 @@ func toUserPricing(p *service.ChannelModelPricing) *userSupportedModelPricing {
 		billingMode = string(service.BillingModeToken)
 	}
 	return &userSupportedModelPricing{
-		BillingMode:      billingMode,
-		InputPrice:       p.InputPrice,
-		OutputPrice:      p.OutputPrice,
-		CacheWritePrice:  p.CacheWritePrice,
-		CacheReadPrice:   p.CacheReadPrice,
-		ImageOutputPrice: p.ImageOutputPrice,
-		PerRequestPrice:  p.PerRequestPrice,
-		Intervals:        intervals,
+		BillingMode:       billingMode,
+		InputPrice:        p.InputPrice,
+		OutputPrice:       p.OutputPrice,
+		CacheWritePrice:   p.CacheWritePrice,
+		CacheWrite5mPrice: p.CacheWrite5mPrice,
+		CacheWrite1hPrice: p.CacheWrite1hPrice,
+		CacheReadPrice:    p.CacheReadPrice,
+		ImageOutputPrice:  p.ImageOutputPrice,
+		PerRequestPrice:   p.PerRequestPrice,
+		Intervals:         intervals,
 	}
 }

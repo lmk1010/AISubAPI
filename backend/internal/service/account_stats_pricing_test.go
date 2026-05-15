@@ -227,6 +227,27 @@ func TestCalculateStatsCost_TokenBilling_WithCache(t *testing.T) {
 	require.InDelta(t, 0.95, *result, 1e-12)
 }
 
+func TestCalculateStatsCost_TokenBilling_WithCacheTTLPrices(t *testing.T) {
+	pricing := &ChannelModelPricing{
+		BillingMode:       BillingModeToken,
+		InputPrice:        testPtrFloat64(3e-6),
+		OutputPrice:       testPtrFloat64(15e-6),
+		CacheWritePrice:   testPtrFloat64(3.75e-6),
+		CacheWrite5mPrice: testPtrFloat64(6.25e-6),
+		CacheWrite1hPrice: testPtrFloat64(12.5e-6),
+	}
+	tokens := UsageTokens{
+		InputTokens:           957,
+		OutputTokens:          9,
+		CacheCreationTokens:   24795,
+		CacheCreation5mTokens: 24795,
+	}
+
+	result := calculateStatsCost(pricing, tokens, 1)
+	require.NotNil(t, result)
+	require.InDelta(t, 0.15797475, *result, 1e-12)
+}
+
 func TestCalculateStatsCost_TokenBilling_WithImageOutput(t *testing.T) {
 	pricing := &ChannelModelPricing{
 		BillingMode:      BillingModeToken,

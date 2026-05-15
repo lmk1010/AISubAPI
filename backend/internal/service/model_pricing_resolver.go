@@ -141,6 +141,9 @@ func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricin
 	// 如果有有效的区间定价，使用区间
 	if len(validIntervals) > 0 {
 		resolved.Intervals = validIntervals
+		if intervalsHaveCacheTTLOverrides(validIntervals) {
+			resolved.SupportsCacheBreakdown = true
+		}
 		return
 	}
 
@@ -157,10 +160,9 @@ func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricin
 		resolved.BasePricing.OutputPricePerToken = *chPricing.OutputPrice
 		resolved.BasePricing.OutputPricePerTokenPriority = *chPricing.OutputPrice
 	}
-	if chPricing.CacheWritePrice != nil {
-		resolved.BasePricing.CacheCreationPricePerToken = *chPricing.CacheWritePrice
-		resolved.BasePricing.CacheCreation5mPrice = *chPricing.CacheWritePrice
-		resolved.BasePricing.CacheCreation1hPrice = *chPricing.CacheWritePrice
+	applyCacheWritePriceOverrides(resolved.BasePricing, chPricing.CacheWritePrice, chPricing.CacheWrite5mPrice, chPricing.CacheWrite1hPrice)
+	if chPricing.CacheWrite5mPrice != nil || chPricing.CacheWrite1hPrice != nil {
+		resolved.SupportsCacheBreakdown = true
 	}
 	if chPricing.CacheReadPrice != nil {
 		resolved.BasePricing.CacheReadPricePerToken = *chPricing.CacheReadPrice
@@ -185,12 +187,22 @@ func filterValidIntervals(intervals []PricingInterval) []PricingInterval {
 	var valid []PricingInterval
 	for _, iv := range intervals {
 		if iv.InputPrice != nil || iv.OutputPrice != nil ||
-			iv.CacheWritePrice != nil || iv.CacheReadPrice != nil ||
+			iv.CacheWritePrice != nil || iv.CacheWrite5mPrice != nil ||
+			iv.CacheWrite1hPrice != nil || iv.CacheReadPrice != nil ||
 			iv.PerRequestPrice != nil {
 			valid = append(valid, iv)
 		}
 	}
 	return valid
+}
+
+func intervalsHaveCacheTTLOverrides(intervals []PricingInterval) bool {
+	for _, iv := range intervals {
+		if iv.CacheWrite5mPrice != nil || iv.CacheWrite1hPrice != nil {
+			return true
+		}
+	}
+	return false
 }
 
 // GetIntervalPricing 根据 context token 数获取区间定价。
@@ -221,11 +233,7 @@ func intervalToModelPricing(iv *PricingInterval, supportsCacheBreakdown bool) *M
 		pricing.OutputPricePerToken = *iv.OutputPrice
 		pricing.OutputPricePerTokenPriority = *iv.OutputPrice
 	}
-	if iv.CacheWritePrice != nil {
-		pricing.CacheCreationPricePerToken = *iv.CacheWritePrice
-		pricing.CacheCreation5mPrice = *iv.CacheWritePrice
-		pricing.CacheCreation1hPrice = *iv.CacheWritePrice
-	}
+	applyCacheWritePriceOverrides(pricing, iv.CacheWritePrice, iv.CacheWrite5mPrice, iv.CacheWrite1hPrice)
 	if iv.CacheReadPrice != nil {
 		pricing.CacheReadPricePerToken = *iv.CacheReadPrice
 		pricing.CacheReadPricePerTokenPriority = *iv.CacheReadPrice

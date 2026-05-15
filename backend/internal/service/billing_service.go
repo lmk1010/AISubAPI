@@ -352,10 +352,18 @@ func (s *BillingService) GetModelPricing(model string) (*ModelPricing, error) {
 	fallback := s.getFallbackPricing(model)
 	if fallback != nil {
 		log.Printf("[Billing] Using fallback pricing for model: %s", model)
-		return s.applyModelSpecificPricingPolicy(model, fallback), nil
+		return s.applyModelSpecificPricingPolicy(model, cloneModelPricing(fallback)), nil
 	}
 
 	return nil, fmt.Errorf("pricing not found for model: %s", model)
+}
+
+func cloneModelPricing(pricing *ModelPricing) *ModelPricing {
+	if pricing == nil {
+		return nil
+	}
+	cloned := *pricing
+	return &cloned
 }
 
 // GetModelPricingWithChannel 获取模型定价，渠道配置的价格覆盖默认值
@@ -376,11 +384,7 @@ func (s *BillingService) GetModelPricingWithChannel(model string, channelPricing
 		pricing.OutputPricePerToken = *channelPricing.OutputPrice
 		pricing.OutputPricePerTokenPriority = *channelPricing.OutputPrice
 	}
-	if channelPricing.CacheWritePrice != nil {
-		pricing.CacheCreationPricePerToken = *channelPricing.CacheWritePrice
-		pricing.CacheCreation5mPrice = *channelPricing.CacheWritePrice
-		pricing.CacheCreation1hPrice = *channelPricing.CacheWritePrice
-	}
+	applyCacheWritePriceOverrides(pricing, channelPricing.CacheWritePrice, channelPricing.CacheWrite5mPrice, channelPricing.CacheWrite1hPrice)
 	if channelPricing.CacheReadPrice != nil {
 		pricing.CacheReadPricePerToken = *channelPricing.CacheReadPrice
 		pricing.CacheReadPricePerTokenPriority = *channelPricing.CacheReadPrice
@@ -389,6 +393,44 @@ func (s *BillingService) GetModelPricingWithChannel(model string, channelPricing
 		pricing.ImageOutputPricePerToken = *channelPricing.ImageOutputPrice
 	}
 	return pricing, nil
+}
+
+func applyCacheWritePriceOverrides(pricing *ModelPricing, generic, fiveMinute, oneHour *float64) {
+	if pricing == nil {
+		return
+	}
+	if generic != nil {
+		pricing.CacheCreationPricePerToken = *generic
+		pricing.CacheCreation5mPrice = *generic
+		pricing.CacheCreation1hPrice = *generic
+	}
+	if fiveMinute != nil {
+		pricing.CacheCreation5mPrice = *fiveMinute
+	}
+	if oneHour != nil {
+		pricing.CacheCreation1hPrice = *oneHour
+	}
+	if fiveMinute == nil && oneHour == nil {
+		return
+	}
+
+	fallback := pricing.CacheCreationPricePerToken
+	if fallback == 0 && pricing.CacheCreation5mPrice > 0 {
+		fallback = pricing.CacheCreation5mPrice
+	}
+	if fallback == 0 && pricing.CacheCreation1hPrice > 0 {
+		fallback = pricing.CacheCreation1hPrice
+	}
+	if pricing.CacheCreationPricePerToken == 0 {
+		pricing.CacheCreationPricePerToken = fallback
+	}
+	if pricing.CacheCreation5mPrice == 0 {
+		pricing.CacheCreation5mPrice = fallback
+	}
+	if pricing.CacheCreation1hPrice == 0 {
+		pricing.CacheCreation1hPrice = fallback
+	}
+	pricing.SupportsCacheBreakdown = true
 }
 
 // --- 统一计费入口 ---

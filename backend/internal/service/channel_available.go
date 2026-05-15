@@ -132,12 +132,14 @@ func synthesizePricingFromLiteLLM(lp *LiteLLMModelPricing) *ChannelModelPricing 
 		return nil
 	}
 	return &ChannelModelPricing{
-		BillingMode:      BillingModeToken,
-		InputPrice:       nonZeroPtr(lp.InputCostPerToken),
-		OutputPrice:      nonZeroPtr(lp.OutputCostPerToken),
-		CacheWritePrice:  nonZeroPtr(lp.CacheCreationInputTokenCost),
-		CacheReadPrice:   nonZeroPtr(lp.CacheReadInputTokenCost),
-		ImageOutputPrice: nonZeroPtr(lp.OutputCostPerImageToken),
+		BillingMode:       BillingModeToken,
+		InputPrice:        nonZeroPtr(lp.InputCostPerToken),
+		OutputPrice:       nonZeroPtr(lp.OutputCostPerToken),
+		CacheWritePrice:   nonZeroPtr(lp.CacheCreationInputTokenCost),
+		CacheWrite5mPrice: nonZeroPtr(lp.CacheCreationInputTokenCost),
+		CacheWrite1hPrice: nonZeroPtr(lp.CacheCreationInputTokenCostAbove1hr),
+		CacheReadPrice:    nonZeroPtr(lp.CacheReadInputTokenCost),
+		ImageOutputPrice:  nonZeroPtr(lp.OutputCostPerImageToken),
 	}
 }
 

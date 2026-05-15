@@ -793,6 +793,49 @@ func TestGetModelPricingWithChannel_CacheWritePriceAffects5mAnd1h(t *testing.T) 
 	require.InDelta(t, 7e-6, pricing.CacheCreation1hPrice, 1e-12)
 }
 
+func TestGetModelPricingWithChannel_CacheTTLOverridesAffectActualCost(t *testing.T) {
+	svc := newTestBillingService()
+
+	chPricing := &ChannelModelPricing{
+		CacheWritePrice:   testPtrFloat64(3.75e-6),
+		CacheWrite5mPrice: testPtrFloat64(6.25e-6),
+		CacheWrite1hPrice: testPtrFloat64(12.5e-6),
+	}
+	tokens := UsageTokens{
+		InputTokens:           957,
+		OutputTokens:          9,
+		CacheCreationTokens:   24795,
+		CacheCreation5mTokens: 24795,
+	}
+
+	cost, err := svc.calculateCostInternal("claude-sonnet-4", tokens, 1.2, "", chPricing)
+	require.NoError(t, err)
+
+	expectedBase := float64(tokens.InputTokens)*3e-6 +
+		float64(tokens.CacheCreation5mTokens)*6.25e-6 +
+		float64(tokens.OutputTokens)*15e-6
+	require.InDelta(t, expectedBase, cost.TotalCost, 1e-10)
+	require.InDelta(t, 0.1895697, cost.ActualCost, 1e-10)
+}
+
+func TestGetModelPricingWithChannel_DoesNotMutateFallbackPricing(t *testing.T) {
+	svc := newTestBillingService()
+
+	first, err := svc.GetModelPricingWithChannel("claude-sonnet-4", &ChannelModelPricing{
+		InputPrice:        testPtrFloat64(99e-6),
+		CacheWrite5mPrice: testPtrFloat64(6.25e-6),
+	})
+	require.NoError(t, err)
+	require.InDelta(t, 99e-6, first.InputPricePerToken, 1e-12)
+	require.True(t, first.SupportsCacheBreakdown)
+
+	second, err := svc.GetModelPricing("claude-sonnet-4")
+	require.NoError(t, err)
+	require.InDelta(t, 3e-6, second.InputPricePerToken, 1e-12)
+	require.InDelta(t, 3.75e-6, second.CacheCreationPricePerToken, 1e-12)
+	require.False(t, second.SupportsCacheBreakdown)
+}
+
 func TestGetModelPricingWithChannel_CacheReadPriceAffectsPriority(t *testing.T) {
 	svc := newTestBillingService()
 
